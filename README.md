@@ -151,31 +151,43 @@ sudo apt install qt5-default pyqt5-dev pyqt5-dev-tools qttools5-dev-tools
 Manual installation if there is still bugs.
 
 ```bash
-pip3 install PyQt6==6.2.3  # Example version, adjust based on compatibility
+pip3 install PyQt6  # (PyQt6==6.2.3) Example version, adjust based on compatibility
 ```
 
-
-YDE TRY
+You need to add a path to your .bashrc   ___ DONT FORGET LARA TO ADD
 
 
 ```bash
-git config --global credential.helper cache
-
-git config --global credential.helper 'cache --timeout=3600'
-
+NECE
 ```
 
+### 4.1 USB permissions 
+
+
+Check your usb ports
+
+lsusb  ()
+
+Get the rules going,
+
+```bash
 sudo usermod -a -G dialout $USER
 sudo usermod -a -G plugdev $USER
+```
+
+```bash
+cd /etc/udev/rules.d
+```
 
 
+
+This is the home directory,
+
+```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-```bash
-sudo usermod -a -G plugdev $USER
-```
 
 /etc/udev/rules.d
 
