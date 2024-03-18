@@ -91,7 +91,7 @@ sudo apt-get update
 sudo apt-get install python3-catkin-tools
 ```
 
-### 3.2 If you have bugs
+### 3.3 Create your catkin workspace
 
 Creating a ROS workspace is a common first step when working with ROS (Robot Operating System). A workspace is essentially a directory (folder) where you can organize and build your ROS packages. In your home do the following,
 
@@ -103,8 +103,6 @@ cd ~/catkin_ws/src
 ```bash
 catkin_init_workspace
 ```
-
-### 3.3 Create your catkin workspace
 
 Then you need to build the workspace
 
@@ -139,8 +137,6 @@ pip3 install --upgrade pip
 ```bash
 pip3 install cfclient
 ```
-
-
 
 ```bash
 sudo apt update && sudo apt upgrade
