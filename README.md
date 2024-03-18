@@ -214,3 +214,9 @@ cd
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
+
+Finally do the following to reboot your machine/computer
+
+```bash
+sudo reboot
+```
