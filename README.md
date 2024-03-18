@@ -179,9 +179,25 @@ sudo usermod -a -G plugdev $USER
 cd /etc/udev/rules.d
 ```
 
+Once inside this folder please do the following create a file with the following content.
 
+```bash
+touch 99-crazyradio.rules 
+```
 
-This is the home directory,
+```bash
+chmod +x 99-crazyradio.rules 
+```
+
+99-crazyradio.rules (WHAT THE FILE NEEDS TO LOOK LIKE)
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664", GROUP="plugdev"
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", MODE="0664", GROUP="plugdev"
+
+This is then done back in the home directory,
 
 ```bash
 sudo udevadm control --reload-rules
