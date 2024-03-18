@@ -32,6 +32,27 @@ sudo apt update
 sudo apt install code
 ```
 
+Now for the Latex
+
+```bash
+sudo apt update
+sudo apt install texlive-full
+sudo apt install texmaker
+```
+Now, verify that the installation happened and enter texmaker in the terminal
+
+```bash
+latex -v
+texmaker
+```
+
+Then go back to the terminal, and start up compile a document
+```bash
+pdflatex plan.tex
+```
+
+Now you have your pdf.
+
 ## 1. Issues
 
 You need eduroam - connect to LU-Guest and then we set up eduroam by going inside the folder where this is located
