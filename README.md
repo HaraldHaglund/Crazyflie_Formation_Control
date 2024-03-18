@@ -103,6 +103,9 @@ cd ~/catkin_ws/src
 ```bash
 catkin_init_workspace
 ```
+
+### 3.3 Create your catkin workspace
+
 Then you need to build the workspace
 
 ```bash
