@@ -160,17 +160,15 @@ pip3 install PyQt6  # (PyQt6==6.2.3) Example version, adjust based on compatibil
 nano .bashrc
 ```
 
-The following should be located at the end of your .bashrc
-
-source /opt/ros/noetic/setup.bash
-
-source ~/catkin_ws/devel/setup.bash
-
-export PATH="$HOME/.local/bin:$PATH"
+The following should be located at the end of your .bashrc (THE END OF YOUR BASHRC FILE BY NOW SHOULD HAVE THESE THREE LINES IF ONE IS MISSING ADD IT MANUALY AND SAVE, be careful not to ruin anything above)
 
 ```bash
-To close it you will pres ctrl+x and pick Y (for yes) and then enter
+source /opt/ros/noetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+To close it and save it you will pres ctrl+x and pick Y (for yes) and then enter
 
 ```bash
 source ~/.bashrc
@@ -210,17 +208,15 @@ sudo chmod +x 99-crazyradio.rules
 sudo nano +x 99-crazyradio.rules 
 ```
 
-99-crazyradio.rules (WHAT THE FILE NEEDS TO LOOK LIKE)
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664", GROUP="plugdev"
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", MODE="0664", GROUP="plugdev"
+99-crazyradio.rules (WHAT THE FILE NEEDS TO LOOK LIKE) - the content is given below
 
 ```bash
-To close it you will pres ctrl+x and pick Y (for yes) and then enter
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", MODE="0664", GROUP="plugdev"
 ```
+
+To close it and save it you will pres ctrl+x and pick Y (for yes) and then enter
 
 This is then done back in the home directory,
 
