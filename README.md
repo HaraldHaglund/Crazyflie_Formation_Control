@@ -150,4 +150,6 @@ sudo apt install qt5-default pyqt5-dev pyqt5-dev-tools qttools5-dev-tools
 
 Manual installation if there is still bugs.
 
+```bash
 pip3 install PyQt6==6.2.3  # Example version, adjust based on compatibility
+```
