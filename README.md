@@ -20,9 +20,13 @@ To help you to avoid checking in files that are not needed, the .gitignore conta
 lsb_release -a
 ```
 No LSB modules are available.
+
 Distributor ID: Ubuntu
+
 Description:    Ubuntu 20.04.1 LTS
+
 Release:        20.04
+
 Codename:       focal
 
 - check python version:
@@ -35,25 +39,28 @@ python3 --version
 
 ### 3.1 Install ROS Noetic (the only version compatible with Ubuntu 20.04 LTS)
 
-Mostly needed on the M100 Nuc:
+Mostly set up your keys etc.
 ```bash
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+```
+Installation itself
+```bash
+sudo apt update
+sudo apt install ros-noetic-desktop-full
 ```
 
-### coinhsl
+Before you can use ROS, you need to initialize rosdep - system dependencies for source you want to compile and is required to run some core components in ROS, and set up your enviroment.
+```bash
+sudo rosdep init
+rosdep update
+echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
 
 ```bash
-sudo pip3 install meson
+sudo apt install python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
 ```
 
-### 3.2 CASADI
+### 3.2 If you have bugs
 
-Install:
-```bash
-sudo apt-get install coinor-libipopt-dev
-```
-
-Compile Casadi:
-```bash
-git clone https://github.com/casadi/casadi.git casadi
-```
