@@ -129,4 +129,29 @@ In the home directory confirm that the ROS path is correct
 echo $ROS_PACKAGE_PATH
 ```
 
-It should include the path to your workspace's `src` directory.
+## 4. Install cfclient - FOR CRAZYFLIE
+
+```bash
+sudo apt install git python3-pip libxcb-xinerama0 libxcb-cursor0
+pip3 install --upgrade pip
+```
+
+```bash
+pip3 install cfclient
+```
+
+
+
+```bash
+sudo apt update && sudo apt upgrade
+```
+
+Install PyQt6 Dependencies...
+
+```bash
+sudo apt install qt5-default pyqt5-dev pyqt5-dev-tools qttools5-dev-tools
+```
+
+Manual installation if there is still bugs.
+
+pip3 install PyQt6==6.2.3  # Example version, adjust based on compatibility
