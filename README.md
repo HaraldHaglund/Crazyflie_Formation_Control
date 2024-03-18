@@ -138,6 +138,8 @@ pip3 install --upgrade pip
 pip3 install cfclient
 ```
 
+### 4.1 If you have bugs
+
 ```bash
 sudo apt update && sudo apt upgrade
 ```
@@ -154,19 +156,34 @@ Manual installation if there is still bugs.
 pip3 install PyQt6  # (PyQt6==6.2.3) Example version, adjust based on compatibility
 ```
 
-You need to add a path to your .bashrc   ___ DONT FORGET LARA TO ADD
-
-
 ```bash
-NECE
+nano .bashrc
 ```
 
-### 4.1 USB permissions 
+The following should be located at the end of your .bashrc
+
+source /opt/ros/noetic/setup.bash
+
+source ~/catkin_ws/devel/setup.bash
+
+export PATH="$HOME/.local/bin:$PATH"
+
+```bash
+To close it you will pres ctrl+x and pick Y (for yes) and then enter
+```
+
+```bash
+source ~/.bashrc
+```
+
+### 4.2 USB permissions 
 
 
-Check your usb ports
+Check your usb ports by inserting a random usb and doing the following in the terminal, if the radio doesn't show up the following below must be added.
 
-lsusb  ()
+```bash
+lsusb
+```
 
 Get the rules going,
 
@@ -188,6 +205,7 @@ sudo touch 99-crazyradio.rules
 ```bash
 sudo chmod +x 99-crazyradio.rules 
 ```
+
 ```bash
 sudo nano +x 99-crazyradio.rules 
 ```
