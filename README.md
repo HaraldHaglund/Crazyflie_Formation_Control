@@ -188,6 +188,9 @@ sudo touch 99-crazyradio.rules
 ```bash
 sudo chmod +x 99-crazyradio.rules 
 ```
+```bash
+sudo nano +x 99-crazyradio.rules 
+```
 
 99-crazyradio.rules (WHAT THE FILE NEEDS TO LOOK LIKE)
 
@@ -196,6 +199,10 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664"
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
 
 SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", MODE="0664", GROUP="plugdev"
+
+```bash
+To close it you will pres ctrl+x and pick Y (for yes) and then enter
+```
 
 This is then done back in the home directory,
 
@@ -207,10 +214,3 @@ cd
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
-
-
-/etc/udev/rules.d
-
-
- pip3 install --upgrade pip
-
