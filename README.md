@@ -8,11 +8,44 @@ To help you to avoid checking in files that are not needed, the .gitignore conta
 
 # FOR STUDENTS - CRAZYFLIE PREP
 
+## 0. How to install VS Code and LaTex in Ubuntu
+
+To install Visual Studio Code in Ubuntu 20.04 via the terminal, follow these steps. 
+
+```bash
+sudo apt update
+sudo apt install software-properties-common apt-transport-https wget
+```
+
+Microsoft GPG key...
+
+```bash
+wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
+```
+
+```bash
+sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
+```
+
+```bash
+sudo apt update
+sudo apt install code
+```
+
 ## 1. Issues
 
-You need eduroam - connect to LU-Guest and then we set up  
+You need eduroam - connect to LU-Guest and then we set up eduroam by going inside the folder where this is located
+in the terminal and running 
 
-## 2. Info -
+```bash
+cd Download # for example
+```
+
+```bash
+python3 eduroam-linux-Lund_University.py
+```
+
+## 2. Info
 
 - check ubuntu version:
 
