@@ -10,7 +10,7 @@ To help you to avoid checking in files that are not needed, the .gitignore conta
 
 ## 1. Issues
 
-- 
+You need eduroam - connect to LU-Guest and then we set up  
 
 ## 2. Info
 
@@ -64,3 +64,66 @@ sudo apt install python3-rosinstall python3-rosinstall-generator python3-wstool 
 
 ### 3.2 If you have bugs
 
+If you do not have rosdep on your ubuntu,
+
+```bash
+sudo apt update
+sudo apt install python3-rosdep
+```
+ 
+You have to initialize rosdep
+
+```bash
+sudo rosdep init
+rosdep update
+```
+
+Add the the ROS environment by adding the following line to your `~/.bashrc` file.
+
+```bash
+source /opt/ros/noetic/setup.bash
+```
+
+Install, the catkin tools if you are missing them
+
+```bash
+sudo apt-get update
+sudo apt-get install python3-catkin-tools
+```
+
+### 3.2 If you have bugs
+
+Creating a ROS workspace is a common first step when working with ROS (Robot Operating System). A workspace is essentially a directory (folder) where you can organize and build your ROS packages. In your home do the following,
+
+```bash
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+```
+
+```bash
+catkin_init_workspace
+```
+Then you need to build the workspace
+
+```bash
+cd ~/catkin_ws
+catkin build
+```
+
+Every new terminal you open will not automatically know about your ROS workspace. To add your workspace to the ROS environment, you need to source the `setup.bash` script in your workspace's `devel` directory.
+
+
+```bash
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+Adding the source command to your `~/.bashrc` file ensures that every new terminal session will automatically source your workspace, making ROS aware of your packages.
+
+In the home directory confirm that the ROS path is correct
+
+```bash
+echo $ROS_PACKAGE_PATH
+```
+
+It should include the path to your workspace's `src` directory.
