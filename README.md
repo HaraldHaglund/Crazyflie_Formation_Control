@@ -12,7 +12,7 @@ To help you to avoid checking in files that are not needed, the .gitignore conta
 
 You need eduroam - connect to LU-Guest and then we set up  
 
-## 2. Info
+## 2. Info -
 
 - check ubuntu version:
 
