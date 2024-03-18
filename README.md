@@ -5,3 +5,55 @@ It is not possible to commit empty folders to git. If you still want to commit a
 Try to keep your git-repository clean. As a rule-of-thumb, do not check in files that can be generated from the code in the repository, e.g., compiled binaries. In principle, neither pdf-files which are generated from the TeX-code should be checked in. However, do check in final versions of your reports, presentations and all other documentation - these are the same documents that go into the shared git repo.
 
 To help you to avoid checking in files that are not needed, the .gitignore contains rules for which files that will not be added to git by default. If you explicitly add a specific file, it will be added regardless of the rules in the .gitignore file.
+
+# FOR STUDENTS - CRAZYFLIE PREP
+
+## 1. Issues
+
+- 
+
+## 2. Info
+
+- check ubuntu version:
+
+```bash
+lsb_release -a
+```
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 20.04.1 LTS
+Release:        20.04
+Codename:       focal
+
+- check python version:
+
+```bash
+python3 --version
+```
+
+## 3. Preparations
+
+### 3.1 Install ROS Noetic (the only version compatible with Ubuntu 20.04 LTS)
+
+Mostly needed on the M100 Nuc:
+```bash
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+```
+
+### coinhsl
+
+```bash
+sudo pip3 install meson
+```
+
+### 3.2 CASADI
+
+Install:
+```bash
+sudo apt-get install coinor-libipopt-dev
+```
+
+Compile Casadi:
+```bash
+git clone https://github.com/casadi/casadi.git casadi
+```
