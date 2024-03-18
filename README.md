@@ -153,3 +153,32 @@ Manual installation if there is still bugs.
 ```bash
 pip3 install PyQt6==6.2.3  # Example version, adjust based on compatibility
 ```
+
+
+YDE TRY
+
+
+```bash
+git config --global credential.helper cache
+
+git config --global credential.helper 'cache --timeout=3600'
+
+```
+
+sudo usermod -a -G dialout $USER
+sudo usermod -a -G plugdev $USER
+
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+```bash
+sudo usermod -a -G plugdev $USER
+```
+
+/etc/udev/rules.d
+
+
+ pip3 install --upgrade pip
+
