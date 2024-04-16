@@ -17,8 +17,9 @@
 # To run:
 * Run:
 	source install/local_setup.bash
+	export PYTHONPATH="<replace-with-path-to>/crazyflie-firmware/build:$PYTHONPATH"
 	ros2 launch crazyflie launch.py backend:=sim rviz:=True gui:=False
 * Run in another terminal:
 	source install/local_setup.bash
-	ros2 run frtn70 topicsniffer
+	ros2 run frtn70 swc
 	
