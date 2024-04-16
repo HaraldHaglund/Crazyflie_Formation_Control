@@ -41,7 +41,7 @@ class Controller(Node):
         self.goal_tolerance = 0.2
 
         # How big our area is
-        self.bounding_box_size = [3.0, 5.0, 2.0]
+        self.bounding_box_size = [3.0/2, 5.0/2, 2.0]
 
         # Get drone names, need to wait for them to show up        
         self._drones = set()
@@ -122,10 +122,11 @@ class Controller(Node):
 
     
     def moveAll(self, force):
+        #TODO display waypoint when setting new goal
         for (name, cf) in self._crazyflies.items():
             startPoint = self.getPositions()[name]
             goal = np.array(startPoint) + np.array(force)
-            if any([abs(list(goal)[i]) > self.bounding_box_size[i] / 2 for i in range(len(self.bounding_box_size))]):
+            if any([abs(list(goal)[i]) > self.bounding_box_size[i] for i in range(len(self.bounding_box_size))]):
                 print("GOAL OUTSIDE OF BOUNDING BOX")
                 return
             cf.setGoal(goal)
