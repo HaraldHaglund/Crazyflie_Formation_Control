@@ -41,7 +41,7 @@ class Controller(Node):
         self.goal_tolerance = 0.2
 
         # How big our area is
-        self.bounding_box_size = [2.0, 5.0, 2.0]
+        self.bounding_box_size = [3.0, 5.0, 2.0]
 
         # Get drone names, need to wait for them to show up        
         self._drones = set()
@@ -64,17 +64,17 @@ class Controller(Node):
         # Try to perform operations at 100 Hz
         operation_interval = 0.01
         self.operations = [
-            Operation("Takeoff",                force=[0.0, 0.0, 1.0]),
+            Operation("Takeoff",                force=[0.0, 0.0, 0.5]),
             Operation("Wait 1 s", type="Delay", countTo=1.0/operation_interval),
-            Operation("Move forward",           force=[0.0, 1.0, 0.0]),
+            Operation("Move forward",           force=[0.0, 0.5, 0.0]),
             Operation("Wait 1 s", type="Delay", countTo=1.0/operation_interval),
-            Operation("Move up",                force=[0.0, 0.0, 1.0]),
+            Operation("Move up",                force=[0.0, 0.0, 0.5]),
             Operation("Wait 1 s", type="Delay", countTo=1.0/operation_interval),
-            Operation("Move back",              force=[0.0, -1.0, 0.0]),
+            Operation("Move back",              force=[0.0, -0.5, 0.0]),
             Operation("Wait 1 s", type="Delay", countTo=1.0/operation_interval),
-            Operation("Move right",             force=[1.0, 0.0, 0.0]),
+            Operation("Move right",             force=[0.5, 0.0, 0.0]),
             Operation("Wait 1 s", type="Delay", countTo=1.0/operation_interval),
-            Operation("Move left",              force=[-1.0, 0.0, 0.0]),
+            Operation("Move left",              force=[-0.5, 0.0, 0.0]),
             Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval),
             ]
 
@@ -106,8 +106,9 @@ class Controller(Node):
         # Filter outliars
         valid_positions = {}
         for (cf, listener) in self._crazyflies.items():
-            if not any([abs(v) > self.bounding_box_size for v in listener.position]):
-                valid_positions[cf] = listener.position
+            pos = listener.position
+            # Filter?
+            valid_positions[cf] = pos
 
         return valid_positions
 
@@ -124,6 +125,9 @@ class Controller(Node):
         for (name, cf) in self._crazyflies.items():
             startPoint = self.getPositions()[name]
             goal = np.array(startPoint) + np.array(force)
+            if any([abs(list(goal)[i]) > self.bounding_box_size[i] / 2 for i in range(len(self.bounding_box_size))]):
+                print("GOAL OUTSIDE OF BOUNDING BOX")
+                return
             cf.setGoal(goal)
             msg = cf.stateMsg
             msg.header.stamp = self.get_clock().now().to_msg()
@@ -161,6 +165,7 @@ class Controller(Node):
             
             # Send message
             cf.controlPublisher.publish(msg)   
+        self.shutdown()
 
 
     def allAtPositions(self):
@@ -205,7 +210,6 @@ class Controller(Node):
                 op.counter += 1
                 # Check if we are done counting
                 if op.counter < op.countTo:
-                    print("COUNTING")
                     return
             # We are done with operation, mark it as such
             op.completed = True
