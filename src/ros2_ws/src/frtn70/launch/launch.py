@@ -3,17 +3,17 @@ import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch_ros.actions import Node
-from launch.conditions import LaunchConfigurationEquals
-from launch.conditions import LaunchConfigurationNotEquals
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch_ros.actions import Node, SetParameter
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PythonExpression, EqualsSubstitution, NotEqualsSubstitution
 
 
 def generate_launch_description():
+    package_name = 'frtn70'
 
     # load crazyflies
     crazyflies_yaml = os.path.join(
-        get_package_share_directory('crazyflie'),
+        get_package_share_directory(package_name),
         'config',
         'crazyflies.yaml')
 
@@ -22,7 +22,7 @@ def generate_launch_description():
 
     # server params
     server_yaml = os.path.join(
-        get_package_share_directory('crazyflie'),
+        get_package_share_directory(package_name),
         'config',
         'server.yaml')
 
@@ -45,7 +45,7 @@ def generate_launch_description():
 
     # construct motion_capture_configuration
     motion_capture_yaml = os.path.join(
-        get_package_share_directory('crazyflie'),
+        get_package_share_directory(package_name),
         'config',
         'motion_capture.yaml')
 
@@ -73,46 +73,25 @@ def generate_launch_description():
     with open('tmp_motion_capture.yaml', 'w') as outfile:
         yaml.dump(motion_capture_content, outfile, default_flow_style=False, sort_keys=False)
 
-    return LaunchDescription([
-        DeclareLaunchArgument('backend', default_value='cpp'),
+    ld = [
         DeclareLaunchArgument('debug', default_value='False'),
-        DeclareLaunchArgument('rviz', default_value='False'),
-        DeclareLaunchArgument('gui', default_value='True'),
+        DeclareLaunchArgument('rviz', default_value='True'),
+        DeclareLaunchArgument('gui', default_value='False'),
         DeclareLaunchArgument('server_yaml_file', default_value=''),
         DeclareLaunchArgument('teleop_yaml_file', default_value=''),
         DeclareLaunchArgument('mocap_yaml_file', default_value=''),
         Node(
             package='motion_capture_tracking',
             executable='motion_capture_tracking_node',
-            condition=LaunchConfigurationNotEquals('backend','sim'),
+            condition=IfCondition(NotEqualsSubstitution(LaunchConfiguration('backend'),'sim')),
             name='motion_capture_tracking',
             output='screen',
             parameters= [PythonExpression(["'tmp_motion_capture.yaml' if '", LaunchConfiguration('mocap_yaml_file'), "' == '' else '", LaunchConfiguration('mocap_yaml_file'), "'"])],
         ),
         Node(
             package='crazyflie',
-            executable='teleop',
-            name='teleop',
-            remappings=[
-                ('emergency', 'all/emergency'),
-                ('takeoff', 'all/takeoff'),
-                ('land', 'all/land'),
-                # uncomment to manually control (and update teleop.yaml)
-                # ('cmd_vel_legacy', 'cf6/cmd_vel_legacy'),
-                # ('cmd_full_state', 'cf6/cmd_full_state'),
-                # ('notify_setpoints_stop', 'cf6/notify_setpoints_stop'),
-            ],
-            parameters= [PythonExpression(["'teleop.yaml' if '", LaunchConfiguration('teleop_yaml_file'), "' == '' else '", LaunchConfiguration('teleop_yaml_file'), "'"])],
-        ),
-        Node(
-            package='joy',
-            executable='joy_node',
-            name='joy_node' # by default id=0
-        ),
-        Node(
-            package='crazyflie',
             executable='crazyflie_server.py',
-            condition=LaunchConfigurationEquals('backend','cflib'),
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('backend'),'cflib')),
             name='crazyflie_server',
             output='screen',
             parameters= [PythonExpression(["'tmp_server.yaml' if '", LaunchConfiguration('server_yaml_file'), "' == '' else '", LaunchConfiguration('server_yaml_file'), "'"])],
@@ -120,7 +99,7 @@ def generate_launch_description():
         Node(
             package='crazyflie',
             executable='crazyflie_server',
-            condition=LaunchConfigurationEquals('backend','cpp'),
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('backend'),'cpp')),
             name='crazyflie_server',
             output='screen',
             parameters= [PythonExpression(["'tmp_server.yaml' if '", LaunchConfiguration('server_yaml_file'), "' == '' else '", LaunchConfiguration('server_yaml_file'), "'"])],
@@ -129,31 +108,33 @@ def generate_launch_description():
         Node(
             package='crazyflie_sim',
             executable='crazyflie_server',
-            condition=LaunchConfigurationEquals('backend','sim'),
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('backend'),'sim')),
             name='crazyflie_server',
             output='screen',
             emulate_tty=True,
             parameters= [PythonExpression(["'tmp_server.yaml' if '", LaunchConfiguration('server_yaml_file'), "' == '' else '", LaunchConfiguration('server_yaml_file'), "'"])],
         ),
         Node(
-            condition=LaunchConfigurationEquals('rviz', 'True'),
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('rviz'), 'True')),
             package='rviz2',
             namespace='',
             executable='rviz2',
             name='rviz2',
-            #arguments=['-d' + os.path.join(get_package_share_directory('crazyflie'), 'config', 'config.rviz')],
+            arguments=['-d' + os.path.join(get_package_share_directory(package_name), 'config', 'config.rviz')],
             parameters=[{
                 "use_sim_time": PythonExpression(["'", LaunchConfiguration('backend'), "' == 'sim'"]),
             }]
         ),
-        Node(
-            condition=LaunchConfigurationEquals('gui', 'True'),
-            package='crazyflie',
-            namespace='',
-            executable='gui.py',
-            name='gui',
-            parameters=[{
-                "use_sim_time": PythonExpression(["'", LaunchConfiguration('backend'), "' == 'sim'"]),
-            }]
-        ),
-    ])
+    ]
+
+    use_simtime = IfCondition(EqualsSubstitution(LaunchConfiguration('backend'), 'sim'))
+    backend = DeclareLaunchArgument('backend', default_value='cpp')
+    ld.insert(0, backend)
+
+    if use_simtime:
+        print("Using simtime!!")
+        ld.insert(1, SetParameter(name='use_sim_time', value=True))
+
+
+    return LaunchDescription(ld)
+
