@@ -340,6 +340,7 @@ class Controller(Node):
         self.markerPublisher = self.create_publisher(MarkerArray, '/markers', 5)
 
     
+    # TODO comment this
     def displayMarkers(self):
         markers = MarkerArray()
         bb=self.bounding_box_size
