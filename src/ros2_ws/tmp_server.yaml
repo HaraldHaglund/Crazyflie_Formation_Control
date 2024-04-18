@@ -62,7 +62,7 @@
         uri: radio://0/80/2M/E7E7E7E7E7
         initial_position:
         - 0.0
-        - 0.0
+        - 0.5
         - 0.0
         type: cf21
         firmware_logging:
@@ -74,8 +74,8 @@
         enabled: true
         uri: radio://0/80/2M/E5E5E5E5E5
         initial_position:
-        - 1.0
-        - -1.0
+        - 0.5
+        - 0.0
         - 0.0
         type: cf21
         firmware_logging:
@@ -87,8 +87,8 @@
         enabled: true
         uri: radio://0/80/2M/E2E2E2E2E2
         initial_position:
-        - -1.0
-        - -1.0
+        - -0.5
+        - 0.0
         - 0.0
         type: cf21
         firmware_logging:
@@ -97,11 +97,11 @@
           pose:
             frequency: 10
       cf4:
-        enabled: false
+        enabled: true
         uri: radio://0/80/2M/E3E3E3E3E3
         initial_position:
-        - -1.0
-        - 1.0
+        - 0.0
+        - -0.5
         - 0.0
         type: cf21
         firmware_logging:

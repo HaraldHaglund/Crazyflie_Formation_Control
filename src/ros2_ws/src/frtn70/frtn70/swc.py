@@ -47,12 +47,12 @@ class Controller(Node):
         self.goal_tolerance = 0.1
 
         # How big our area is
-        self.bounding_box_size = [5.0/2, 5.0/2, 2.0]
+        self.bounding_box_size = [10.0/2, 10.0/2, 2.0]
 
         # Tuning parameters for force model
-        self.wcoh = 0.5
+        self.wcoh = 0.2
         self.walign = 0.2
-        self.wsep = 0.8
+        self.wsep = 0.1
 
         # Initial goal
         self.goal = [0.0, 0.0, 0.0]
@@ -97,6 +97,55 @@ class Controller(Node):
             Operation("Wait 10 s",      type="Delay",   countTo=10.0/operation_interval),
             Operation("Land",           type="Land"),
             ]
+        
+        self.circle_op = [
+            Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
+            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
+            Operation("Move",           type="Goal",    goal=[0.05, 0.05, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.1, 0.1, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.15, 0.15, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.2, 0.2, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.25, 0.25, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.3, 0.3, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.35, 0.35, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.4, 0.4, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.45, 0.45, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.5, 0.5, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.55, 0.55, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.6, 0.6, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.65, 0.65, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.7, 0.7, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.75, 0.75, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.8, 0.8, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.85, 0.85, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.9, 0.9, 1.0]),
+            Operation("Move",           type="Goal",    goal=[0.95, 0.95, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.0, 1.0, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.05, 0.95, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.1, 0.9, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.15, 0.85, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.2, 0.8, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.25, 0.75, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.3, 0.7, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.35, 0.65, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.4, 0.6, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.45, 0.55, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.5, 0.5, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.55, 0.45, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.6, 0.4, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.65, 0.35, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.7, 0.3, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.75, 0.25, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.8, 0.2, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.85, 0.15, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.9, 0.1, 1.0]),
+            Operation("Move",           type="Goal",    goal=[1.95, 0.05, 1.0]),
+            Operation("Move",           type="Goal",    goal=[2.0, 0.0, 1.0]),
+            Operation("Wait 10 s",      type="Delay",   countTo=10.0/operation_interval),
+            Operation("Land",           type="Land"),
+            ]
+        
+        self.operations = self.circle_op
 
         # Call performOperations function every operation_interval seconds
         self.operation_timer = self.create_timer(operation_interval, self.performOperations)
@@ -241,10 +290,11 @@ class Controller(Node):
 
             
     
-    #TODO Implement pointcloud that shows paths for individual drones and the average path
     #TODO Generate paths dynamically
-    #TODO Change move function to allow movement of average point to absolute coords with 
-    #       smooth path to go there
+    #TODO Extend safety system with battery level
+    #TODO Extend safety system with drone distance checks - if too close, apply fsep on all drones and land
+    #TODO Add obstacles
+    #TODO Add obstacleForce = sum(1/(pos - obstaclePos)) for O, O=Obstacles within distance
 
     def boidforce(self):
         bforce = {}
@@ -334,6 +384,7 @@ class Controller(Node):
         for cf in self._crazyflies.values():
             cf.shutdown()
         self.destroy_node()
+        exit()
 
 
     def createMarkerPublisher(self):
@@ -407,6 +458,9 @@ class Controller(Node):
             markers.markers.append(m)
 
         for (i, op) in enumerate(self.operations):
+            # Do not create waypoints for moves or delays
+            if op.type in ["Delay", "Move"]:
+                continue
             m = Marker()
             m.header.frame_id = "world"
             m.header.stamp = self.get_clock().now().to_msg()
@@ -416,7 +470,7 @@ class Controller(Node):
             m.id = i + len(box_lines)
             m.pose.position.x = op.goal[0]
             m.pose.position.y = op.goal[1]
-            m.pose.position.z = op.goal[2]
+            m.pose.position.z = op.goal[2] - self.goal_tolerance / 2
             m.pose.orientation.x = 0.0
             m.pose.orientation.y = 0.0
             m.pose.orientation.z = 0.0
@@ -509,15 +563,15 @@ class FrameListener(Node):
     def createControlPublisher(self): 
         self.stateMsg = FullState()
         self.stateMsg.header.frame_id = '/world'
-        self.stateMsg.twist.angular.x = 0.01
-        self.stateMsg.twist.angular.y = 0.01
-        self.stateMsg.twist.angular.z = 0.01
-        self.stateMsg.twist.linear.x = 0.01
-        self.stateMsg.twist.linear.y = 0.01
-        self.stateMsg.twist.linear.z = 0.01
-        self.stateMsg.acc.x = 0.01
-        self.stateMsg.acc.y = 0.01
-        self.stateMsg.acc.z = 0.01
+        self.stateMsg.twist.angular.x = 0.00
+        self.stateMsg.twist.angular.y = 0.00
+        self.stateMsg.twist.angular.z = 0.00
+        self.stateMsg.twist.linear.x = 0.00
+        self.stateMsg.twist.linear.y = 0.00
+        self.stateMsg.twist.linear.z = 0.00
+        self.stateMsg.acc.x = 0.00
+        self.stateMsg.acc.y = 0.00
+        self.stateMsg.acc.z = 0.00
         self.controlPublisher = self.create_publisher(
                     FullState, self._drone + '/cmd_full_state', 1)
         
@@ -597,6 +651,7 @@ def main(args=None):
         pass
     controller.shutdown()
     #rclpy.shutdown()
+    exit()
 
 
 if __name__ == '__main__':
