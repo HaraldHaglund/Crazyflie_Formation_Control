@@ -58,7 +58,7 @@
       controller: mellinger
     robots:
       cf1:
-        enabled: false
+        enabled: true
         uri: radio://0/90/2M/1
         initial_position:
         - 0.0
@@ -70,9 +70,9 @@
           default_topics:
             pose:
               frequency: 10
-      cf5:
+      cf2:
         enabled: true
-        uri: radio://0/90/2M/5
+        uri: radio://0/90/2M/2
         initial_position:
         - 0.5
         - 0.0
@@ -83,9 +83,9 @@
           default_topics:
             pose:
               frequency: 10
-      cf4:
+      cf3:
         enabled: true
-        uri: radio://0/90/2M/4
+        uri: radio://0/90/2M/3
         initial_position:
         - -0.5
         - 0.0
@@ -96,9 +96,9 @@
           default_topics:
             pose:
               frequency: 10
-      cf7:
-        enabled: false
-        uri: radio://0/80/2M/E3E3E3E3E3
+      cf4:
+        enabled: true
+        uri: radio://0/80/2M/4
         initial_position:
         - 0.0
         - -0.5
@@ -109,9 +109,9 @@
           default_topics: null
           pose:
             frequency: 10
-      cf6:
+      cf5:
         enabled: false
-        uri: radio://0/80/2M/E4E4E4E4E4
+        uri: radio://0/80/2M/5
         initial_position:
         - -1.0
         - -1.0
@@ -119,9 +119,9 @@
         type: cf21
         firmware_logging:
           enabled: true
-          default_topics: null
-          pose:
-            frequency: 10
+          default_topics:
+            pose:
+              frequency: 10
     robot_types:
       cf21:
         motion_capture:
@@ -151,13 +151,15 @@
             frequency: 1
       firmware_params:
         commander:
-          enHighLevel: 1
+          enHighLevel: 2
         stabilizer:
           estimator: 2
           controller: 2
         locSrv:
           extPosStdDev: 1e-3
           extQuatStdDev: 0.05
+        kalman:
+          resetEstimation: 1
       broadcasts:
         num_repeats: 15
         delay_between_repeats_ms: 1

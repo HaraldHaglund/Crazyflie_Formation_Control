@@ -9,8 +9,12 @@ Panels:
         - /TF1
         - /MarkerArray1
         - /MarkerArray1/Topic1
+        - /MarkerArray2
+        - /MarkerArray2/Topic1
+        - /Marker1
+        - /Marker1/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 363
+    Tree Height: 719
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -57,7 +61,11 @@ Visualization Manager:
         All Enabled: true
         cf1:
           Value: true
-        cf5:
+        cf2:
+          Value: true
+        cf3:
+          Value: true
+        cf4:
           Value: true
         world:
           Value: true
@@ -70,7 +78,11 @@ Visualization Manager:
         world:
           cf1:
             {}
-          cf5:
+          cf2:
+            {}
+          cf3:
+            {}
+          cf4:
             {}
       Update Interval: 0
       Value: true
@@ -78,15 +90,38 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        average_position: true
-        corner: true
-        waypoint: true
+        {}
       Topic:
         Depth: 1
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /markers
+        Value: /boundingBox
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /waypoints
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /avgPoint
       Value: true
   Enabled: true
   Global Options:

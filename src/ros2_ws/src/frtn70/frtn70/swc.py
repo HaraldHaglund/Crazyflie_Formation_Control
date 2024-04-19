@@ -51,9 +51,9 @@ class Controller(Node):
         self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
 
         # Tuning parameters for force model
-        self.wcoh = 0.02
+        self.wcoh = 0.5
         self.walign = 0.02
-        self.wsep = 0.01
+        self.wsep = 0.05
 
         # Initial goal
         self.goal = [0.0, 0.0, 0.0]
@@ -77,7 +77,8 @@ class Controller(Node):
 
         print("CREATING LISTENERS")
         self.createDrones()
-        self.createMarkerPublisher()
+        self.createMarkerPublishers()
+        self.displayBoundingBox()
 
         # Try to perform operations at 100 Hz
         operation_interval = 0.01
@@ -114,17 +115,23 @@ class Controller(Node):
         
         #self.operations = self.circle_op
 
+        # We have now created our operation - so call the method for rendering them (pathplanner should do this after every updated path)
+        self.displayWaypoints()
+
         # Call performOperations function every operation_interval seconds
         self.operation_timer = self.create_timer(operation_interval, self.performOperations)
 
         # Print debug info every 0.5 seconds, 2Hz
         #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
-        # Draw markers every 0.1 seconds, 10Hz
-        self.marker_timer = self.create_timer(0.1, self.displayMarkers)
+        # Draw avgPoint marker every 0.01 seconds, 100Hz
+        self.marker_timer = self.create_timer(0.01, self.displayAvgPoint)
 
         # Run safety checks at double operation_interval seconds
         self.safety_timer = self.create_timer(operation_interval / 2, self.checkSafety)
+
+
+
 
 
     def debugPrint(self):
@@ -357,12 +364,13 @@ class Controller(Node):
         exit()
 
 
-    def createMarkerPublisher(self):
-        self.markerPublisher = self.create_publisher(MarkerArray, '/markers', 5)
+    def createMarkerPublishers(self):
+        self.avgPointPublisher = self.create_publisher(Marker, '/avgPoint', 5)
+        self.boundingBoxPublisher = self.create_publisher(MarkerArray, '/boundingBox', 5)
+        self.waypointPublisher = self.create_publisher(MarkerArray, '/waypoints', 5)
 
-    
-    # TODO comment this
-    def displayMarkers(self):
+
+    def displayBoundingBox(self):
         markers = MarkerArray()
         bb=self.bounding_box_size
         corners = [
@@ -427,6 +435,12 @@ class Controller(Node):
             
             markers.markers.append(m)
 
+        self.boundingBoxPublisher.publish(markers)
+
+
+        
+    def displayWaypoints(self):
+        markers = MarkerArray()
         for (i, op) in enumerate(self.operations):
             # Do not create waypoints for moves or delays
             if op.type in ["Delay", "Move"]:
@@ -437,7 +451,7 @@ class Controller(Node):
             m.ns = "waypoint"
             m.type = Marker.SPHERE 
             m.action = Marker.ADD
-            m.id = i + len(box_lines)
+            m.id = i + 12 # 12 since that is the number of edges in the bounding box
             m.pose.position.x = op.goal[0]
             m.pose.position.y = op.goal[1]
             m.pose.position.z = op.goal[2] - self.goal_tolerance / 2
@@ -456,6 +470,10 @@ class Controller(Node):
 
             markers.markers.append(m)
 
+        self.waypointPublisher.publish(markers)
+    
+
+    def displayAvgPoint(self):        
         m = Marker()
         avgPos = self.getAvgPosition(list(self.getPositions().values()))
         m.header.frame_id = "world"
@@ -463,7 +481,7 @@ class Controller(Node):
         m.ns = "average_position"
         m.type = Marker.SPHERE 
         m.action = Marker.ADD
-        m.id = i + len(box_lines) + len(self.operations)
+        m.id = 1 + len(self.operations) + 12 # 12 since that is the number of edges in the bounding box
         m.pose.position.x = avgPos[0]
         m.pose.position.y = avgPos[1]
         m.pose.position.z = avgPos[2]
@@ -480,10 +498,8 @@ class Controller(Node):
         m.scale.x = self.goal_tolerance / 2
         m.scale.y = self.goal_tolerance / 2
         m.scale.z = self.goal_tolerance / 2
-
-        markers.markers.append(m)
             
-        self.markerPublisher.publish(markers)
+        self.avgPointPublisher.publish(m)
 
 
 
