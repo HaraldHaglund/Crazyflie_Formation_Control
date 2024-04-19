@@ -58,8 +58,8 @@
       controller: mellinger
     robots:
       cf1:
-        enabled: true
-        uri: radio://0/80/2M/E7E7E7E7E7
+        enabled: false
+        uri: radio://0/90/2M/1
         initial_position:
         - 0.0
         - 0.5
@@ -67,12 +67,12 @@
         type: cf21
         firmware_logging:
           enabled: true
-          default_topics: null
-          pose:
-            frequency: 10
-      cf2:
+          default_topics:
+            pose:
+              frequency: 10
+      cf5:
         enabled: true
-        uri: radio://0/80/2M/E5E5E5E5E5
+        uri: radio://0/90/2M/5
         initial_position:
         - 0.5
         - 0.0
@@ -80,11 +80,11 @@
         type: cf21
         firmware_logging:
           enabled: true
-          default_topics: null
-          pose:
-            frequency: 10
+          default_topics:
+            pose:
+              frequency: 10
       cf3:
-        enabled: true
+        enabled: false
         uri: radio://0/80/2M/E2E2E2E2E2
         initial_position:
         - -0.5
@@ -92,12 +92,12 @@
         - 0.0
         type: cf21
         firmware_logging:
-          enabled: true
+          enabled: false
           default_topics: null
           pose:
             frequency: 10
       cf4:
-        enabled: true
+        enabled: false
         uri: radio://0/80/2M/E3E3E3E3E3
         initial_position:
         - 0.0
@@ -109,7 +109,7 @@
           default_topics: null
           pose:
             frequency: 10
-      cf5:
+      cf6:
         enabled: false
         uri: radio://0/80/2M/E4E4E4E4E4
         initial_position:

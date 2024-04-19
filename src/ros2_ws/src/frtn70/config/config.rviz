@@ -10,7 +10,7 @@ Panels:
         - /MarkerArray1
         - /MarkerArray1/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 719
+    Tree Height: 363
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -57,9 +57,7 @@ Visualization Manager:
         All Enabled: true
         cf1:
           Value: true
-        cf2:
-          Value: true
-        cf3:
+        cf5:
           Value: true
         world:
           Value: true
@@ -72,9 +70,7 @@ Visualization Manager:
         world:
           cf1:
             {}
-          cf2:
-            {}
-          cf3:
+          cf5:
             {}
       Update Interval: 0
       Value: true
@@ -82,7 +78,9 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        average_position: true
+        corner: true
+        waypoint: true
       Topic:
         Depth: 1
         Durability Policy: Volatile
@@ -136,7 +134,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 6.65387487411499
+      Distance: 5.136698246002197
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -151,10 +149,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8600482940673828
+      Pitch: 0.5750485062599182
       Target Frame: cf1
       Value: Orbit (rviz_default_plugins)
-      Yaw: 1.2346420288085938
+      Yaw: 4.164663314819336
     Saved: ~
 Window Geometry:
   Displays:

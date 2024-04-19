@@ -24,7 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'swc = frtn70.swc:main'
+            'swc = frtn70.swc:main',
+            'simpletest = frtn70.simple_takeoff:main'
         ],
     },
 )

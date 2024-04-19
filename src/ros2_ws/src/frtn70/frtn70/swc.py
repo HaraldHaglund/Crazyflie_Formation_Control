@@ -22,6 +22,7 @@ import time
 
 # Needed for calculations
 import numpy as np
+import math
 
 class Operation:
     def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Move", countTo=0):
@@ -47,12 +48,12 @@ class Controller(Node):
         self.goal_tolerance = 0.1
 
         # How big our area is
-        self.bounding_box_size = [10.0/2, 10.0/2, 2.0]
+        self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
 
         # Tuning parameters for force model
-        self.wcoh = 0.2
-        self.walign = 0.2
-        self.wsep = 0.1
+        self.wcoh = 0.02
+        self.walign = 0.02
+        self.wsep = 0.01
 
         # Initial goal
         self.goal = [0.0, 0.0, 0.0]
@@ -83,7 +84,7 @@ class Controller(Node):
         
         self.operations = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
+            Operation("Wait 10 s",       type="Delay",   countTo=10.0/operation_interval),
             Operation("Move forward",   type="Goal",    goal=[0.0, 0.3, 1.0]),
             Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
             Operation("Move up",        type="Goal",    goal=[0.0, 0.3, 1.5]),
@@ -98,60 +99,26 @@ class Controller(Node):
             Operation("Land",           type="Land"),
             ]
         
+
         self.circle_op = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
-            Operation("Move",           type="Goal",    goal=[0.05, 0.05, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.1, 0.1, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.15, 0.15, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.2, 0.2, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.25, 0.25, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.3, 0.3, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.35, 0.35, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.4, 0.4, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.45, 0.45, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.5, 0.5, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.55, 0.55, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.6, 0.6, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.65, 0.65, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.7, 0.7, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.75, 0.75, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.8, 0.8, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.85, 0.85, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.9, 0.9, 1.0]),
-            Operation("Move",           type="Goal",    goal=[0.95, 0.95, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.0, 1.0, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.05, 0.95, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.1, 0.9, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.15, 0.85, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.2, 0.8, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.25, 0.75, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.3, 0.7, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.35, 0.65, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.4, 0.6, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.45, 0.55, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.5, 0.5, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.55, 0.45, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.6, 0.4, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.65, 0.35, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.7, 0.3, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.75, 0.25, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.8, 0.2, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.85, 0.15, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.9, 0.1, 1.0]),
-            Operation("Move",           type="Goal",    goal=[1.95, 0.05, 1.0]),
-            Operation("Move",           type="Goal",    goal=[2.0, 0.0, 1.0]),
-            Operation("Wait 10 s",      type="Delay",   countTo=10.0/operation_interval),
-            Operation("Land",           type="Land"),
+            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),            
             ]
         
-        self.operations = self.circle_op
+        for i in range(180, -181, -12):
+            v = math.radians(i)
+            self.circle_op.append(Operation("Move", type="Goal", goal=[math.cos(v) + 1.0, math.sin(v), 1.0 + math.sin(v) / 2]))
+
+        self.circle_op.append(Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval))
+        self.circle_op.append(Operation("Land", type="Land"))
+        
+        #self.operations = self.circle_op
 
         # Call performOperations function every operation_interval seconds
         self.operation_timer = self.create_timer(operation_interval, self.performOperations)
 
         # Print debug info every 0.5 seconds, 2Hz
-        #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
+        self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
         # Draw markers every 0.1 seconds, 10Hz
         self.marker_timer = self.create_timer(0.1, self.displayMarkers)
@@ -175,19 +142,19 @@ class Controller(Node):
 
 
     def createDrones(self):
-        for cf in self._drones:
-            print("Created drone " + cf)
+        for cf_name in self._drones:
+            print("Created drone " + cf_name)
             # Create crazyflie node, with a goal tolerance of goal_tolerance
-            self._crazyflies[cf] = FrameListener(cf, self.goal_tolerance)
+            self._crazyflies[cf_name] = FrameListener(cf_name, self.goal_tolerance)
 
 
     def getPositions(self):
         # Filter outliars
         valid_positions = {}
-        for (cf, listener) in self._crazyflies.items():
-            pos = listener.position
+        for (cf_name, cf) in self._crazyflies.items():
+            pos = cf.position
             # Filter?
-            valid_positions[cf] = pos
+            valid_positions[cf_name] = pos
 
         return valid_positions
 
@@ -211,9 +178,9 @@ class Controller(Node):
             cf.setGoal(goal)
             msg = cf.stateMsg
             msg.header.stamp = self.get_clock().now().to_msg()
-            msg.pose.position.x = startPoint[0] + force[0]
-            msg.pose.position.y = startPoint[1] + force[1]
-            msg.pose.position.z = startPoint[2] + force[2]
+            msg.pose.position.x = goal[0] #startPoint[0] + force[0]
+            msg.pose.position.y = goal[1] #startPoint[1] + force[1]
+            msg.pose.position.z = goal[2] #startPoint[2] + force[2]
             #q = rowan.from_euler(0, 0, yaw)
             q = rowan.from_euler(0, 0, rotation)
             msg.pose.orientation.w = q[0]
@@ -243,7 +210,7 @@ class Controller(Node):
     def performOperations(self):
         #print("Trying to perform operation")
         if not (self.allReady() and self.allAtPositions()):
-            #print("All drones were not ready")
+            print("All drones were not ready, goal:", self.allAtPositions(), " ready: ", self.allReady(), "Dists to goal:", [np.linalg.norm(np.array(cf._goal_pos) - np.array(cf.position)) for cf in self._crazyflies.values()])
             return 
 
         #Ready for next move
@@ -348,9 +315,9 @@ class Controller(Node):
         cf.setGoal(goal)
         msg = cf.stateMsg
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.pose.position.x = startPoint[0] + force[0]
-        msg.pose.position.y = startPoint[1] + force[1]
-        msg.pose.position.z = startPoint[2] + force[2]
+        msg.pose.position.x = goal[0] #startPoint[0] + force[0]
+        msg.pose.position.y = goal[1] #startPoint[1] + force[1]
+        msg.pose.position.z = goal[2] #startPoint[2] + force[2]
         q = rowan.from_euler(0, 0, rotation)
         msg.pose.orientation.w = q[0]
         msg.pose.orientation.x = q[1]
@@ -373,8 +340,8 @@ class Controller(Node):
         positions = self.getPositions()
         for (name, pos) in positions.items():
             for i in range(3):
-                if abs(pos[i]) > self.bounding_box_size[i]:
-                    print("EMERGENCY, DRONE " + name + " IS OUTSIDE THE BOUNDING BOX! LANDING!!")
+                if abs(pos[i]) > self.bounding_box_size[i] and self._crazyflies[name].ready:
+                    print("EMERGENCY, DRONE " + name + " IS OUTSIDE THE BOUNDING BOX! LANDING!!", pos)
                     self.moveAll([0.0, 0.0, - pos[2] + self.landing_height])
                     self.shutdown()
 
@@ -581,7 +548,6 @@ class FrameListener(Node):
 
     
     def setGoal(self, pos, rot=[0, 0, 0, 0]):
-        #We should check that it is within the bounding box here!
         self._goal_pos = pos
         self._goal_rot = rot
         self.goal_reached = False
@@ -599,11 +565,13 @@ class FrameListener(Node):
                                 to_frame_rel, 
                                 from_frame_rel,
                                 rclpy.time.Time())
+                                #self.get_clock().now())
             if not can_transform:
+                print("Could not transform frames", to_frame_rel, from_frame_rel)
                 self.ready = False
                 return
 
-            self.ready = True
+            
 
             # Get the drone position relative to the world
             tform = self.tf_buffer.lookup_transform(
@@ -611,6 +579,8 @@ class FrameListener(Node):
                     from_frame_rel,
                     rclpy.time.Time())
                     #self.get_clock().now())
+            
+            self.ready = True
         except TransformException as ex:
             self.get_logger().info(
                     f'Could not transform {to_frame_rel} to {from_frame_rel}: {ex}')
