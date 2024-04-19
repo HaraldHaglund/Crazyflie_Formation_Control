@@ -118,7 +118,7 @@ class Controller(Node):
         self.operation_timer = self.create_timer(operation_interval, self.performOperations)
 
         # Print debug info every 0.5 seconds, 2Hz
-        self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
+        #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
         # Draw markers every 0.1 seconds, 10Hz
         self.marker_timer = self.create_timer(0.1, self.displayMarkers)
@@ -176,7 +176,8 @@ class Controller(Node):
             #    print("GOAL OUTSIDE OF BOUNDING BOX")
             #    return
             cf.setGoal(goal)
-            msg = cf.stateMsg
+            #msg = cf.stateMsg
+            msg = cf.getNewStateMsg()
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.pose.position.x = goal[0] #startPoint[0] + force[0]
             msg.pose.position.y = goal[1] #startPoint[1] + force[1]
@@ -189,7 +190,8 @@ class Controller(Node):
             msg.pose.orientation.z = q[3]
             
             # Send message
-            cf.controlPublisher.publish(msg)
+            cf.stateMsg = msg
+            #cf.controlPublisher.publish(msg)
 
 
     def allAtPositions(self):
@@ -210,7 +212,7 @@ class Controller(Node):
     def performOperations(self):
         #print("Trying to perform operation")
         if not (self.allReady() and self.allAtPositions()):
-            print("All drones were not ready, goal:", self.allAtPositions(), " ready: ", self.allReady(), "Dists to goal:", [np.linalg.norm(np.array(cf._goal_pos) - np.array(cf.position)) for cf in self._crazyflies.values()])
+            #print("All drones were not ready, goal:", self.allAtPositions(), " ready: ", self.allReady(), "Dists to goal:", [np.linalg.norm(np.array(cf._goal_pos) - np.array(cf.position)) for cf in self._crazyflies.values()])
             return 
 
         #Ready for next move
@@ -237,7 +239,7 @@ class Controller(Node):
             elif op.type == "Land":
                 print("Landing")
                 self.goToGoal([0.0, 0.0, self.landing_height])
-                self.shutdown()
+                #self.shutdown()
             elif op.type == "Goal":
                 self.goToGoal(op.goal)
                 self.goal = op.goal
@@ -313,7 +315,7 @@ class Controller(Node):
         #    print("GOAL OUTSIDE OF BOUNDING BOX")
         #    return
         cf.setGoal(goal)
-        msg = cf.stateMsg
+        msg = cf.getNewStateMsg()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position.x = goal[0] #startPoint[0] + force[0]
         msg.pose.position.y = goal[1] #startPoint[1] + force[1]
@@ -325,7 +327,8 @@ class Controller(Node):
         msg.pose.orientation.z = q[3]
             
         # Send message
-        cf.controlPublisher.publish(msg)
+        cf.stateMsg = msg
+        #cf.controlPublisher.publish(msg)
     
 
     def goToGoal(self, goal):
@@ -526,21 +529,37 @@ class FrameListener(Node):
         # Create control publisher
         self.createControlPublisher()
 
+        # Needed since we need to continously send signals to the drones to get them to fly
+        self.shouldStream = False
+        self.stream_timer = self.create_timer(0.1, self.sendPosStream)
+
 
     def createControlPublisher(self): 
-        self.stateMsg = FullState()
-        self.stateMsg.header.frame_id = '/world'
-        self.stateMsg.twist.angular.x = 0.00
-        self.stateMsg.twist.angular.y = 0.00
-        self.stateMsg.twist.angular.z = 0.00
-        self.stateMsg.twist.linear.x = 0.00
-        self.stateMsg.twist.linear.y = 0.00
-        self.stateMsg.twist.linear.z = 0.00
-        self.stateMsg.acc.x = 0.00
-        self.stateMsg.acc.y = 0.00
-        self.stateMsg.acc.z = 0.00
+        self.stateMsg = self.getNewStateMsg()
         self.controlPublisher = self.create_publisher(
-                    FullState, self._drone + '/cmd_full_state', 1)
+                    FullState, self._drone + '/cmd_full_state', 5)
+        
+    
+    def getNewStateMsg(self):
+        msg = FullState()
+        msg.header.frame_id = '/world'
+        msg.twist.angular.x = 0.00
+        msg.twist.angular.y = 0.00
+        msg.twist.angular.z = 0.0
+        msg.twist.linear.x = 0.00
+        msg.twist.linear.y = 0.00
+        msg.twist.linear.z = 0.0
+        msg.acc.x = 0.00
+        msg.acc.y = 0.00
+        msg.acc.z = 0.0
+        return msg
+
+    
+    def sendPosStream(self):
+        if not self.shouldStream:
+            return
+        self.stateMsg.header.stamp = self.get_clock().now().to_msg() #rclpy.time.Time().to_msg() #self.get_clock().now().to_msg()
+        self.controlPublisher.publish(self.stateMsg)
         
     
     def shutdown(self):
@@ -548,6 +567,7 @@ class FrameListener(Node):
 
     
     def setGoal(self, pos, rot=[0, 0, 0, 0]):
+        self.shouldStream = True
         self._goal_pos = pos
         self._goal_rot = rot
         self.goal_reached = False

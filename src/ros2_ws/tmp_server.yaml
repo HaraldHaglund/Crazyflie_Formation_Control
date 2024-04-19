@@ -83,20 +83,20 @@
           default_topics:
             pose:
               frequency: 10
-      cf3:
-        enabled: false
-        uri: radio://0/80/2M/E2E2E2E2E2
+      cf4:
+        enabled: true
+        uri: radio://0/90/2M/4
         initial_position:
         - -0.5
         - 0.0
         - 0.0
         type: cf21
         firmware_logging:
-          enabled: false
-          default_topics: null
-          pose:
-            frequency: 10
-      cf4:
+          enabled: true
+          default_topics:
+            pose:
+              frequency: 10
+      cf7:
         enabled: false
         uri: radio://0/80/2M/E3E3E3E3E3
         initial_position:
