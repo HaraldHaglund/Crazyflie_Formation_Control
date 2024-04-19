@@ -20,7 +20,10 @@ import numpy as np
 import math
 
 # Import our FrameListener
-import FrameListener
+from FrameListener import FrameListener
+
+# Import our graphics handler
+from GraphicsHandler import GraphicsHandler
 
 class Operation:
     def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Move", countTo=0):
@@ -75,8 +78,9 @@ class Controller(Node):
 
         print("CREATING LISTENERS")
         self.createDrones()
-        self.createMarkerPublishers()
-        self.displayBoundingBox()
+        self.graphics = GraphicsHandler(self)
+        self.graphics.createMarkerPublishers()
+        self.graphics.displayBoundingBox()
 
         # Try to perform operations at 100 Hz
         operation_interval = 0.01
@@ -114,7 +118,7 @@ class Controller(Node):
         self.operations = self.circle_op
 
         # We have now created our operation - so call the method for rendering them (pathplanner should do this after every updated path)
-        self.displayWaypoints()
+        self.graphics.displayWaypoints()
 
         # Call performOperations function every operation_interval seconds
         self.operation_timer = self.create_timer(operation_interval, self.performOperations)
@@ -123,7 +127,7 @@ class Controller(Node):
         #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
         # Draw avgPoint marker every 0.01 seconds, 100Hz
-        self.marker_timer = self.create_timer(0.01, self.displayAvgPoint)
+        self.marker_timer = self.create_timer(0.01, self.graphics.displayAvgPoint)
 
         # Run safety checks at double operation_interval seconds
         self.safety_timer = self.create_timer(operation_interval / 2, self.checkSafety)
@@ -149,6 +153,13 @@ class Controller(Node):
             # Create crazyflie node, with a goal tolerance of goal_tolerance
             self._crazyflies[cf_name] = FrameListener(cf_name, self.goal_tolerance)
 
+    
+    def shutdown(self):
+        for cf in self._crazyflies.values():
+            cf.shutdown()
+        self.destroy_node()
+        exit()
+
 
     def getPositions(self):
         # Filter outliars
@@ -167,33 +178,6 @@ class Controller(Node):
             return list(np.array(positions).mean(axis=0))
         else:
             return [0, 0, 0]
-
-    
-    def moveAll(self, force, rotation=0):
-        #TODO display waypoint when setting new goal
-        for (name, cf) in self._crazyflies.items():
-            startPoint = self.getPositions()[name]
-            goal = np.array(startPoint) + np.array(force)
-            #if any([abs(list(goal)[i]) > self.bounding_box_size[i] for i in range(len(self.bounding_box_size))]):
-            #    print("GOAL OUTSIDE OF BOUNDING BOX")
-            #    return
-            cf.setGoal(goal)
-            #msg = cf.stateMsg
-            msg = cf.getNewStateMsg()
-            msg.header.stamp = self.get_clock().now().to_msg()
-            msg.pose.position.x = goal[0] #startPoint[0] + force[0]
-            msg.pose.position.y = goal[1] #startPoint[1] + force[1]
-            msg.pose.position.z = goal[2] #startPoint[2] + force[2]
-            #q = rowan.from_euler(0, 0, yaw)
-            q = rowan.from_euler(0, 0, rotation)
-            msg.pose.orientation.w = q[0]
-            msg.pose.orientation.x = q[1]
-            msg.pose.orientation.y = q[2]
-            msg.pose.orientation.z = q[3]
-            
-            # Send message
-            cf.stateMsg = msg
-            #cf.controlPublisher.publish(msg)
 
 
     def allAtPositions(self):
@@ -310,12 +294,9 @@ class Controller(Node):
     
 
     def applyForce(self, cf, force, rotation=0):
-        #TODO display waypoint when setting new goal
         startPoint = cf.position
         goal = np.array(startPoint) + np.array(force)
-        #if any([abs(list(goal)[i]) > self.bounding_box_size[i] for i in range(len(self.bounding_box_size))]):
-        #    print("GOAL OUTSIDE OF BOUNDING BOX")
-        #    return
+
         cf.setGoal(goal)
         msg = cf.getNewStateMsg()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -330,7 +311,26 @@ class Controller(Node):
             
         # Send message
         cf.stateMsg = msg
-        #cf.controlPublisher.publish(msg)
+
+    def moveAll(self, force, rotation=0):
+        for (name, cf) in self._crazyflies.items():
+            startPoint = self.getPositions()[name]
+            goal = np.array(startPoint) + np.array(force)
+
+            cf.setGoal(goal)
+            msg = cf.getNewStateMsg()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.pose.position.x = goal[0] #startPoint[0] + force[0]
+            msg.pose.position.y = goal[1] #startPoint[1] + force[1]
+            msg.pose.position.z = goal[2] #startPoint[2] + force[2]
+            q = rowan.from_euler(0, 0, rotation)
+            msg.pose.orientation.w = q[0]
+            msg.pose.orientation.x = q[1]
+            msg.pose.orientation.y = q[2]
+            msg.pose.orientation.z = q[3]
+            
+            # Send message
+            cf.stateMsg = msg
     
 
     def goToGoal(self, goal):
@@ -350,151 +350,6 @@ class Controller(Node):
                     self.moveAll([0.0, 0.0, - pos[2] + self.landing_height])
                     self.shutdown()
 
-
-
-    def shutdown(self):
-        for cf in self._crazyflies.values():
-            cf.shutdown()
-        self.destroy_node()
-        exit()
-
-
-    def createMarkerPublishers(self):
-        self.avgPointPublisher = self.create_publisher(Marker, '/avgPoint', 5)
-        self.boundingBoxPublisher = self.create_publisher(MarkerArray, '/boundingBox', 5)
-        self.waypointPublisher = self.create_publisher(MarkerArray, '/waypoints', 5)
-
-
-    def displayBoundingBox(self):
-        markers = MarkerArray()
-        bb=self.bounding_box_size
-        corners = [
-            [bb[0], bb[1], 0.0],
-            [bb[0], bb[1], bb[2]],
-            [-bb[0], bb[1], 0.0],
-            [-bb[0], bb[1], bb[2]],
-            [bb[0], -bb[1], 0.0],
-            [bb[0], -bb[1], bb[2]],
-            [-bb[0], -bb[1], 0.0],
-            [-bb[0], -bb[1], bb[2]],
-        ]
-
-        box_lines = [
-            (corners[0], corners[1]),
-            (corners[2], corners[3]),
-            (corners[4], corners[5]),
-            (corners[6], corners[7]),
-            (corners[0], corners[2]),
-            (corners[0], corners[4]),
-            (corners[2], corners[6]),
-            (corners[4], corners[6]),
-            (corners[1], corners[3]),
-            (corners[1], corners[5]),
-            (corners[3], corners[7]),
-            (corners[5], corners[7]),
-        ]
-        
-        #for (i, c) in enumerate(corners):
-        for (i, l) in enumerate(box_lines):
-            m = Marker()
-            m.header.frame_id = "world"
-            m.header.stamp = self.get_clock().now().to_msg()
-            m.ns = "corner"
-            m.type = Marker.LINE_STRIP 
-            m.action = Marker.ADD
-            m.id = i
-            m.pose.position.x = 0.0
-            m.pose.position.y = 0.0
-            m.pose.position.z = 0.0
-            m.pose.orientation.x = 0.0
-            m.pose.orientation.y = 0.0
-            m.pose.orientation.z = 0.0
-            m.pose.orientation.w = 1.0
-            m.color.r = 255.0
-            m.color.g = 240.0
-            m.color.b = 0.0
-            m.color.a = 1.0
-            #m.lifetime = rclpy.duration.Duration()
-            m.scale.x = 0.01
-            m.scale.y = 0.01
-            m.scale.z = 0.01
-            p1 = Point()
-            p2 = Point()
-            p1.x = l[0][0]
-            p1.y = l[0][1]
-            p1.z = l[0][2]
-            p2.x = l[1][0]
-            p2.y = l[1][1]
-            p2.z = l[1][2]
-            m.points = [p1, p2]
-            
-            markers.markers.append(m)
-
-        self.boundingBoxPublisher.publish(markers)
-
-
-        
-    def displayWaypoints(self):
-        markers = MarkerArray()
-        for (i, op) in enumerate(self.operations):
-            # Do not create waypoints for moves or delays
-            if op.type in ["Delay", "Move"]:
-                continue
-            m = Marker()
-            m.header.frame_id = "world"
-            m.header.stamp = self.get_clock().now().to_msg()
-            m.ns = "waypoint"
-            m.type = Marker.SPHERE 
-            m.action = Marker.ADD
-            m.id = i + 12 # 12 since that is the number of edges in the bounding box
-            m.pose.position.x = op.goal[0]
-            m.pose.position.y = op.goal[1]
-            m.pose.position.z = op.goal[2] - self.goal_tolerance / 2
-            m.pose.orientation.x = 0.0
-            m.pose.orientation.y = 0.0
-            m.pose.orientation.z = 0.0
-            m.pose.orientation.w = 1.0
-            m.color.r = min(200.0 + i, 255.0)
-            m.color.g = min(102.0 + i, 255.0)
-            m.color.b = 0.0
-            m.color.a = 1.0
-            #m.lifetime = rclpy.duration.Duration()
-            m.scale.x = self.goal_tolerance
-            m.scale.y = self.goal_tolerance
-            m.scale.z = self.goal_tolerance
-
-            markers.markers.append(m)
-
-        self.waypointPublisher.publish(markers)
-    
-
-    def displayAvgPoint(self):        
-        m = Marker()
-        avgPos = self.getAvgPosition(list(self.getPositions().values()))
-        m.header.frame_id = "world"
-        m.header.stamp = self.get_clock().now().to_msg()
-        m.ns = "average_position"
-        m.type = Marker.SPHERE 
-        m.action = Marker.ADD
-        m.id = 1 + len(self.operations) + 12 # 12 since that is the number of edges in the bounding box
-        m.pose.position.x = avgPos[0]
-        m.pose.position.y = avgPos[1]
-        m.pose.position.z = avgPos[2]
-        m.pose.orientation.x = 0.0
-        m.pose.orientation.y = 0.0
-        m.pose.orientation.z = 0.0
-        m.pose.orientation.w = 1.0
-        m.color.r = 255.0
-        m.color.g = 0.0
-        m.color.b = 0.0
-        m.color.a = 1.0
-        m.text = "AvgPos"
-        #m.lifetime = rclpy.duration.Duration()
-        m.scale.x = self.goal_tolerance / 2
-        m.scale.y = self.goal_tolerance / 2
-        m.scale.z = self.goal_tolerance / 2
-            
-        self.avgPointPublisher.publish(m)
         
 
 def main(args=None):
