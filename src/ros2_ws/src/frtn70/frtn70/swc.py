@@ -312,6 +312,7 @@ class Controller(Node):
         # Send message
         cf.stateMsg = msg
 
+
     def moveAll(self, force, rotation=0):
         for (name, cf) in self._crazyflies.items():
             startPoint = self.getPositions()[name]

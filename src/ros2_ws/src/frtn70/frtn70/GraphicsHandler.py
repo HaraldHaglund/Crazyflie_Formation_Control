@@ -1,9 +1,3 @@
-from swc import Controller
-# Needed to use ros and create nodes
-import rclpy
-import rclpy.duration
-from rclpy.node import Node
-
 # Needed to display points
 from visualization_msgs.msg import MarkerArray, Marker
 from geometry_msgs.msg import Point
@@ -13,6 +7,7 @@ from std_msgs.msg import ColorRGBA
 class GraphicsHandler:
     def __init__(self, controller):
         self.controller = controller
+        self.goal_tolerance = self.controller.goal_tolerance
 
 
     def createMarkerPublishers(self):
@@ -23,7 +18,7 @@ class GraphicsHandler:
 
     def displayBoundingBox(self):
         markers = MarkerArray()
-        bb=self.bounding_box_size
+        bb=self.controller.bounding_box_size
         corners = [
             [bb[0], bb[1], 0.0],
             [bb[0], bb[1], bb[2]],
@@ -54,7 +49,7 @@ class GraphicsHandler:
         for (i, l) in enumerate(box_lines):
             m = Marker()
             m.header.frame_id = "world"
-            m.header.stamp = self.get_clock().now().to_msg()
+            m.header.stamp = self.controller.get_clock().now().to_msg()
             m.ns = "corner"
             m.type = Marker.LINE_STRIP 
             m.action = Marker.ADD
@@ -92,13 +87,13 @@ class GraphicsHandler:
         
     def displayWaypoints(self):
         markers = MarkerArray()
-        for (i, op) in enumerate(self.operations):
+        for (i, op) in enumerate(self.controller.operations):
             # Do not create waypoints for moves or delays
             if op.type in ["Delay", "Move"]:
                 continue
             m = Marker()
             m.header.frame_id = "world"
-            m.header.stamp = self.get_clock().now().to_msg()
+            m.header.stamp = self.controller.get_clock().now().to_msg()
             m.ns = "waypoint"
             m.type = Marker.SPHERE 
             m.action = Marker.ADD
@@ -126,13 +121,13 @@ class GraphicsHandler:
 
     def displayAvgPoint(self):        
         m = Marker()
-        avgPos = self.getAvgPosition(list(self.getPositions().values()))
+        avgPos = self.controller.getAvgPosition(list(self.controller.getPositions().values()))
         m.header.frame_id = "world"
-        m.header.stamp = self.get_clock().now().to_msg()
+        m.header.stamp = self.controller.get_clock().now().to_msg()
         m.ns = "average_position"
         m.type = Marker.SPHERE 
         m.action = Marker.ADD
-        m.id = 1 + len(self.operations) + 12 # 12 since that is the number of edges in the bounding box
+        m.id = 1 + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
         m.pose.position.x = avgPos[0]
         m.pose.position.y = avgPos[1]
         m.pose.position.z = avgPos[2]
