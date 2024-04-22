@@ -9,7 +9,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
 # Fullstate control
-from crazyflie_interfaces.msg import FullState
+from crazyflie_interfaces.msg import FullState, Status
 
 # Needed for calculations
 import numpy as np
@@ -58,6 +58,21 @@ class FrameListener(Node):
         # Needed since we need to continously send signals to the drones to get them to fly
         self.shouldStream = False
         self.stream_timer = self.create_timer(0.1, self.sendPosStream)
+
+        # Read our status and battery info
+        self.statusSubscriber = self.create_subscription(Status, self._drone + '/status', self.statusHandler, 5)
+
+        # Status for supervisor and battery
+        self.battery_warn = False
+        self.status = None
+
+
+    def statusHandler(self, msg: Status):
+        self.battery_warn = msg.pm_state == Status.PM_STATE_LOW_POWER or msg.pm_state == Status.PM_STATE_SHUTDOWN
+        self.status = msg.supervisor_info
+        if self.status == Status.SUPERVISOR_INFO_IS_LOCKED:
+            print("Drone " + self._drone + " is locked")
+            self.shutdown()
 
 
     def createControlPublisher(self): 

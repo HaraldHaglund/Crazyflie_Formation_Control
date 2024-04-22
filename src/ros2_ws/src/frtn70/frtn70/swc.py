@@ -3,11 +3,6 @@ import rclpy
 import rclpy.duration
 from rclpy.node import Node
 
-# Needed to display points
-from visualization_msgs.msg import MarkerArray, Marker
-from geometry_msgs.msg import Point
-from std_msgs.msg import ColorRGBA
-
 # Fullstate control
 from crazyflie_interfaces.msg import FullState
 import rowan
@@ -38,6 +33,13 @@ class Operation:
         self.type = type
 
 
+class Obstacle:
+    def __init__(self, id, size=[0.5, 0.5, 0.5], location=[0.0, 0.0, 0.0]):
+        self.id = id
+        self.size = size
+        self.location = location
+
+
 # Contains code for controlling the group as a whole, and specific manuvers
 # Is a node
 class Controller(Node):
@@ -47,6 +49,9 @@ class Controller(Node):
 
         # How far away from the goal we can be to be considered "there"
         self.goal_tolerance = 0.1
+
+        # How far apart are the drones allowed to be
+        self.safety_distance = 0.05
 
         # How big our area is
         self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
@@ -84,6 +89,13 @@ class Controller(Node):
 
         # Try to perform operations at 100 Hz
         operation_interval = 0.01
+
+        self.obstacles = [
+            Obstacle(0, location=[2.0, 1.0, 1.5]),
+            Obstacle(1, location=[-1.5, -1.0, 1.0]),
+        ]
+
+        self.graphics.displayObstacles()
         
         self.operations = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
@@ -246,10 +258,8 @@ class Controller(Node):
             
     
     #TODO Generate paths dynamically
-    #TODO Extend safety system with battery level
     #TODO Extend safety system with drone distance checks - if too close, apply fsep on all drones and land
-    #TODO Add obstacles
-    #TODO Add obstacleForce = sum(1/(pos - obstaclePos)) for O, O=Obstacles within distance
+    #TODO Add obstacleForce = sum(1/(pos - obstaclePos)) for O, O=Obstacles within distance - maybe not. Pathplanning should handle.
 
     def boidforce(self):
         bforce = {}
@@ -345,11 +355,25 @@ class Controller(Node):
     def checkSafety(self):
         positions = self.getPositions()
         for (name, pos) in positions.items():
+            if self._crazyflies[name].battery_warn:
+                self.emergencyLand(name, "HAS LOW BATTERY")
+            
+            for (n2, p2) in positions.items():
+                if name == n2:
+                    continue
+                if np.linalg.norm(np.array(p2) - np.array(pos)) < self.safety_distance:
+                    self.emergencyLand(name, "IS TOO CLOSE TO DRONE " + n2)
+
             for i in range(3):
                 if abs(pos[i]) > self.bounding_box_size[i] and self._crazyflies[name].ready:
-                    print("EMERGENCY, DRONE " + name + " IS OUTSIDE THE BOUNDING BOX! LANDING!!", pos)
-                    self.moveAll([0.0, 0.0, - pos[2] + self.landing_height])
-                    self.shutdown()
+                    self.emergencyLand(name, "IS OUTSIDE OF THE BOUNDING BOX")
+
+
+    def emergencyLand(self, drone_name, message):
+        print("EMERGENCY, DRONE " + drone_name + message + "! LANDING!!")
+        self.moveAll([0.0, 0.0, - self._crazyflies[drone_name].position[2] + self.landing_height])
+        self.shutdown()
+
 
         
 

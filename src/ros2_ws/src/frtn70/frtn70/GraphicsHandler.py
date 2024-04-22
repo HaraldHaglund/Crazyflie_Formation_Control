@@ -14,6 +14,7 @@ class GraphicsHandler:
         self.avgPointPublisher = self.controller.create_publisher(Marker, '/avgPoint', 5)
         self.boundingBoxPublisher = self.controller.create_publisher(MarkerArray, '/boundingBox', 5)
         self.waypointPublisher = self.controller.create_publisher(MarkerArray, '/waypoints', 5)
+        self.obstaclePublisher = self.controller.create_publisher(MarkerArray, '/obstacles', 5)
 
 
     def displayBoundingBox(self):
@@ -117,6 +118,37 @@ class GraphicsHandler:
             markers.markers.append(m)
 
         self.waypointPublisher.publish(markers)
+
+
+    def displayObstacles(self):
+        markers = MarkerArray()
+        for (i, ob) in enumerate(self.controller.obstacles):
+            m = Marker()
+            m.header.frame_id = "world"
+            m.header.stamp = self.controller.get_clock().now().to_msg()
+            m.ns = "obstacle"
+            m.type = Marker.CUBE 
+            m.action = Marker.ADD
+            m.id = ob.id # 12 since that is the number of edges in the bounding box
+            m.pose.position.x = ob.location[0]
+            m.pose.position.y = ob.location[1]
+            m.pose.position.z = ob.location[2]
+            m.pose.orientation.x = 0.0
+            m.pose.orientation.y = 0.0
+            m.pose.orientation.z = 0.0
+            m.pose.orientation.w = 1.0
+            m.color.r = 0.0
+            m.color.g = 255.0
+            m.color.b = 0.0
+            m.color.a = 1.0
+            #m.lifetime = rclpy.duration.Duration()
+            m.scale.x = ob.size[0]
+            m.scale.y = ob.size[1]
+            m.scale.z = ob.size[2]
+
+            markers.markers.append(m)
+
+        self.obstaclePublisher.publish(markers)
     
 
     def displayAvgPoint(self):        
