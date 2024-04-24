@@ -1,4 +1,5 @@
 # Needed to display points
+import random
 from visualization_msgs.msg import MarkerArray, Marker
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
@@ -88,34 +89,38 @@ class GraphicsHandler:
         
     def displayWaypoints(self):
         markers = MarkerArray()
-        for (i, op) in enumerate(self.controller.operations):
-            # Do not create waypoints for moves or delays
-            if op.type in ["Delay", "Move"]:
-                continue
-            m = Marker()
-            m.header.frame_id = "world"
-            m.header.stamp = self.controller.get_clock().now().to_msg()
-            m.ns = "waypoint"
-            m.type = Marker.SPHERE 
-            m.action = Marker.ADD
-            m.id = i + 12 # 12 since that is the number of edges in the bounding box
-            m.pose.position.x = op.goal[0]
-            m.pose.position.y = op.goal[1]
-            m.pose.position.z = op.goal[2] - self.goal_tolerance / 2
-            m.pose.orientation.x = 0.0
-            m.pose.orientation.y = 0.0
-            m.pose.orientation.z = 0.0
-            m.pose.orientation.w = 1.0
-            m.color.r = min(200.0 + i, 255.0)
-            m.color.g = min(102.0 + i, 255.0)
-            m.color.b = 0.0
-            m.color.a = 1.0
-            #m.lifetime = rclpy.duration.Duration()
-            m.scale.x = self.goal_tolerance
-            m.scale.y = self.goal_tolerance
-            m.scale.z = self.goal_tolerance
+        colors = [[255.0, 128.0, 0.0], [0.0, 128.0, 255.0], [0.0, 0.0, 255.0], [0.0, 255.0, 255.0], [255.0, 0.0, 255.0], [255.0, 255.0, 0.0]]
+        id = 0
+        for (i, name) in enumerate(self.controller.operations):
+            r, g, b = colors[i]
+            for (j, op) in enumerate(self.controller.operations[name]):
+                # Do not create waypoints for moves or delays
+                if op.type not in ["Delay", "Move", "Landing", "Takeoff"]:
+                    m = Marker()
+                    m.header.frame_id = "world"
+                    m.header.stamp = self.controller.get_clock().now().to_msg()
+                    m.ns = "waypoint"
+                    m.type = Marker.SPHERE 
+                    m.action = Marker.ADD
+                    m.id = id
+                    m.pose.position.x = op.goal[0]
+                    m.pose.position.y = op.goal[1]
+                    m.pose.position.z = op.goal[2] - self.goal_tolerance / 2
+                    m.pose.orientation.x = 0.0
+                    m.pose.orientation.y = 0.0
+                    m.pose.orientation.z = 0.0
+                    m.pose.orientation.w = 1.0
+                    m.color.r = float(r)
+                    m.color.g = float(g)
+                    m.color.b = float(b)
+                    m.color.a = 1.0
+                    #m.lifetime = rclpy.duration.Duration()
+                    m.scale.x = self.goal_tolerance
+                    m.scale.y = self.goal_tolerance
+                    m.scale.z = self.goal_tolerance
 
-            markers.markers.append(m)
+                    markers.markers.append(m)
+                    id += 1
 
         self.waypointPublisher.publish(markers)
 

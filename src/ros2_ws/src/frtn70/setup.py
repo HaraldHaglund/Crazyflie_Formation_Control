@@ -17,6 +17,8 @@ setup(
         (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'FrameListener.py'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'GraphicsHandler.py'))),
+        (os.path.join('lib', package_name), glob(os.path.join(package_name, 'MultiPathGraphicsHandler.py'))),
+        (os.path.join('lib', package_name), glob(os.path.join(package_name, 'Crazyflie.py'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,7 +30,7 @@ setup(
     entry_points={
         'console_scripts': [
             'swc = frtn70.swc:main',
-            'simpletest = frtn70.simple_takeoff:main'
+            'pathswc = frtn70.pathswc:main'
         ],
     },
 )

@@ -1,7 +1,7 @@
 # named list of all robots
 robots:
   cf1:
-    enabled: true
+    enabled: false
     uri: radio://0/90/2M/1
     initial_position: [0.0, 0.5, 0.0]
     type: cf21  # see robot_types
@@ -19,7 +19,7 @@ robots:
     #       vars: ["acc.x", "acc.y"]
     #
   cf2:
-    enabled: true
+    enabled: false
     uri: radio://0/90/2M/2
     initial_position: [0.5, 0.0, 0.0]
     type: cf21  # see robot_types
@@ -33,7 +33,7 @@ robots:
           frequency: 10 # Hz
 
   cf3:
-    enabled: true
+    enabled: false
     uri: radio://0/90/2M/3
     initial_position: [-0.5, 0.0, 0.0]
     type: cf21  # see robot_types
@@ -49,7 +49,7 @@ robots:
 
   cf4:
     enabled: true
-    uri: radio://0/80/2M/4
+    uri: radio://0/90/2M/4
     initial_position: [0.0, -0.5, 0.0]
     type: cf21  # see robot_types
     # firmware_params:
@@ -58,12 +58,26 @@ robots:
     firmware_logging:
       enabled: true
       default_topics:
-      pose:
-        frequency: 10 # Hz
+        pose:
+          frequency: 10 # Hz
 
   cf5:
     enabled: false
-    uri: radio://0/80/2M/5
+    uri: radio://0/90/2M/5
+    initial_position: [-1.0, -1.0, 0.0]
+    type: cf21  # see robot_types
+    # firmware_params:
+    #   kalman:
+    #     pNAcc_xy: 1.0 # default 0.5
+    firmware_logging:
+      enabled: true
+      default_topics:
+        pose:
+          frequency: 10 # Hz
+
+  cf6:
+    enabled: true
+    uri: radio://0/90/2M/6
     initial_position: [-1.0, -1.0, 0.0]
     type: cf21  # see robot_types
     # firmware_params:
@@ -91,15 +105,15 @@ robot_types:
     # firmware_params:
     #   kalman:
     #     pNAcc_xy: 1.0 # default 0.5
-    #firmware_logging:
-    #   enabled: true
-    #   default_topics:
-    #   pose:
-    #     frequency: 1 # Hz
-    #   custom_topics:
-    #    topic_name3: 
-    #      frequency: 1
-    #      vars: ["acc.x", "acc.y", "acc.z"]
+    firmware_logging:
+      enabled: true
+      default_topics:
+        pose:
+          frequency: 10 # Hz
+      custom_topics:
+        topic_name3: 
+          frequency: 1
+          vars: ["acc.x", "acc.y", "acc.z", "ctrltarget.x"]
 
   cf21_mocap_deck:
     motion_capture:
@@ -139,15 +153,15 @@ all:
   # robots/drone_name to set per drone)
   firmware_params:
     commander:
-      enHighLevel: 2 # Used to be 1, seems to mean HighFull https://github.com/IMRCLab/crazyswarm2/blob/main/crazyflie_sim/crazyflie_sim/crazyflie_sil.py
+      enHighLevel: 0 # Used to be 1, seems to mean HighFull https://github.com/IMRCLab/crazyswarm2/blob/main/crazyflie_sim/crazyflie_sim/crazyflie_sil.py
     stabilizer:
       estimator: 2 # 1: complementary, 2: kalman
-      controller: 2 # 1: PID, 2: mellinger
+      controller: 1 # 1: PID, 2: mellinger
     locSrv:
       extPosStdDev: 1e-3
       extQuatStdDev: 0.5e-1
     kalman:
-      resetEstimation: 1
+      resetEstimation: 0
   broadcasts:
     num_repeats: 15 # number of times broadcast commands are repeated
     delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats

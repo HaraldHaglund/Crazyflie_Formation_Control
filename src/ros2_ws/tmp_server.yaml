@@ -58,7 +58,7 @@
       controller: mellinger
     robots:
       cf1:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/1
         initial_position:
         - 0.0
@@ -71,7 +71,7 @@
             pose:
               frequency: 10
       cf2:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/2
         initial_position:
         - 0.5
@@ -84,7 +84,7 @@
             pose:
               frequency: 10
       cf3:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/3
         initial_position:
         - -0.5
@@ -98,7 +98,7 @@
               frequency: 10
       cf4:
         enabled: true
-        uri: radio://0/80/2M/4
+        uri: radio://0/90/2M/4
         initial_position:
         - 0.0
         - -0.5
@@ -106,12 +106,25 @@
         type: cf21
         firmware_logging:
           enabled: true
-          default_topics: null
-          pose:
-            frequency: 10
+          default_topics:
+            pose:
+              frequency: 10
       cf5:
         enabled: false
-        uri: radio://0/80/2M/5
+        uri: radio://0/90/2M/5
+        initial_position:
+        - -1.0
+        - -1.0
+        - 0.0
+        type: cf21
+        firmware_logging:
+          enabled: true
+          default_topics:
+            pose:
+              frequency: 10
+      cf6:
+        enabled: true
+        uri: radio://0/90/2M/6
         initial_position:
         - -1.0
         - -1.0
@@ -132,6 +145,19 @@
         battery:
           voltage_warning: 3.8
           voltage_critical: 3.7
+        firmware_logging:
+          enabled: true
+          default_topics:
+            pose:
+              frequency: 10
+          custom_topics:
+            topic_name3:
+              frequency: 1
+              vars:
+              - acc.x
+              - acc.y
+              - acc.z
+              - ctrltarget.x
       cf21_mocap_deck:
         motion_capture:
           enabled: true
@@ -151,15 +177,15 @@
             frequency: 1
       firmware_params:
         commander:
-          enHighLevel: 2
+          enHighLevel: 0
         stabilizer:
           estimator: 2
-          controller: 2
+          controller: 1
         locSrv:
           extPosStdDev: 1e-3
           extQuatStdDev: 0.05
         kalman:
-          resetEstimation: 1
+          resetEstimation: 0
       broadcasts:
         num_repeats: 15
         delay_between_repeats_ms: 1

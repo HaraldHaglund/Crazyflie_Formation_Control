@@ -1,4 +1,5 @@
 # Needed to use ros and create nodes
+from copy import deepcopy
 import rclpy
 import rclpy.duration
 from rclpy.node import Node
@@ -14,19 +15,20 @@ import time
 import numpy as np
 import math
 
-# Import our FrameListener
-from FrameListener import FrameListener
+# Import our Crazyflie
+from Crazyflie import Crazyflie
 
 # Import our graphics handler
-from GraphicsHandler import GraphicsHandler
+from MultiPathGraphicsHandler import GraphicsHandler
 
 class Operation:
-    def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Move", countTo=0):
+    def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Goal", countTo=0):
         self.name = name
         self.force = force
-        self.goal = goal
+        self.goal = np.array(goal)
         self.inProgress = False
         self.completed = False
+        self.waiting = False
         # For waiting until time has passed
         self.counter = 0
         self.countTo = countTo
@@ -47,25 +49,31 @@ class Controller(Node):
         # Run constructor
         super().__init__('Swarm_controller')
 
+        # Try to perform operations at 100 Hz
+        operation_interval = 0.01
+
         # How far away from the goal we can be to be considered "there"
         self.goal_tolerance = 0.1
-
-        # How far apart are the drones allowed to be
-        self.safety_distance = 0.05
-
-        # How big our area is
-        self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
-
-        # Tuning parameters for force model
-        self.wcoh = 0.0#0.5
-        self.walign = 0.0#0.02
-        self.wsep = 0.0#0.05
 
         # Initial goal
         self.goal = [0.0, 0.0, 0.0]
 
         # The height at which to consider us landed
         self.landing_height = 0.05
+
+        # How far apart are the drones allowed to be
+        self.safety_distance = 0.1
+
+        # How big our area is
+        self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
+
+        # Tuning parameters for force model
+        self.wcoh = 0.2#0.5
+        self.walign = 0.1#0.02
+        self.wsep = 0.3#0.05
+        self.wgoal = 1.0
+        self.boidDistance = 0.8 #How far apart the drones can be to be affected by boidForces
+        self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
 
         # Get drone names, need to wait for them to show up        
         self._drones = set()
@@ -87,54 +95,44 @@ class Controller(Node):
         self.graphics.createMarkerPublishers()
         self.graphics.displayBoundingBox()
 
-        # Try to perform operations at 100 Hz
-        operation_interval = 0.01
-
         self.obstacles = [
-            Obstacle(0, location=[2.0, 1.0, 1.5]),
-            Obstacle(1, location=[-1.5, -1.0, 1.0]),
+            Obstacle(0, size=[0.05, 0.05, 0.05], location=[2.0, 1.0, 1.5]),
+            Obstacle(1, size=[0.05, 0.05, 0.05], location=[-1.5, -1.0, 1.0]),
         ]
 
         self.graphics.displayObstacles()
         
-        self.operations = [
+        self.simpleOpList = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
             Operation("Wait 10 s",       type="Delay",   countTo=10.0/operation_interval),
-            Operation("Move forward",   type="Goal",    goal=[0.0, 0.3, 1.0]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
-            Operation("Move up",        type="Goal",    goal=[0.0, 0.3, 1.5]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
-            Operation("Move back",      type="Goal",    goal=[0.0, 0.0, 1.5]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
-            Operation("Move right",     type="Goal",    goal=[0.3, 0.0, 1.5]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),
-            Operation("Move left",      type="Goal",    goal=[0.0, 0.0, 1.5]),
-            #Operation("Leave bounding box",      type="Goal",    goal=[0.0, 0.0, self.bounding_box_size[2] + 1.0]),
-            Operation("Wait 10 s",      type="Delay",   countTo=10.0/operation_interval),
             Operation("Land",           type="Land"),
             ]
         
 
-        self.circle_op = [
+        self.circle_op_start = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
             Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),            
             ]
-        
-        for i in range(180, -181, -12):
-            v = math.radians(i)
-            self.circle_op.append(Operation("Move", type="Goal", goal=[math.cos(v)*0.5 + 0.5, math.sin(v)*0.5, 1.0 + math.sin(v) / 4]))
 
-        self.circle_op.append(Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval))
-        self.circle_op.append(Operation("Land", type="Land"))
-        #TODO Rewrite code to have individual paths for each drone, and apply boid forces to drones that are within 50 cm of each other
-        # 
-        self.operations = self.circle_op
+        self.operations = {}
+        for (num, name) in enumerate(self._drones):
+            #self.operations[name] = deepcopy(self.simpleOpList)
+            self.operations[name] = deepcopy(self.circle_op_start)
+            for i in range(180, -181, -12):
+                v = math.radians(i)
+                self.operations[name].append(Operation("Move", type="Goal", goal=[math.cos(v)*0.5 + 0.5*num, math.sin(v)*0.5 - 0.5*num, 1.0 + math.sin(v) / 4]))
+            self.operations[name].append(Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval))
+            self.operations[name].append(Operation("Land", type="Land"))
 
         # We have now created our operation - so call the method for rendering them (pathplanner should do this after every updated path)
         self.graphics.displayWaypoints()
 
+        # Variables used to decrease computation time
+        self.distances = None
+        self.positions = None
+
         # Call performOperations function every operation_interval seconds
-        self.operation_timer = self.create_timer(operation_interval, self.performOperations)
+        self.operation_timer = self.create_timer(operation_interval, self.performPathOp)
 
         # Print debug info every 0.5 seconds, 2Hz
         #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
@@ -164,7 +162,7 @@ class Controller(Node):
         for cf_name in self._drones:
             print("Created drone " + cf_name)
             # Create crazyflie node, with a goal tolerance of goal_tolerance
-            self._crazyflies[cf_name] = FrameListener(cf_name, self.goal_tolerance)
+            self._crazyflies[cf_name] = Crazyflie(cf_name, self.goal_tolerance)
 
     
     def shutdown(self):
@@ -180,9 +178,21 @@ class Controller(Node):
         for (cf_name, cf) in self._crazyflies.items():
             pos = cf.position
             # Filter?
-            valid_positions[cf_name] = pos
+            valid_positions[cf_name] = np.array(pos)
 
         return valid_positions
+    
+
+    def getDistances(self):
+        pos = self.positions
+        distances = {}
+        for n in self._crazyflies.keys():
+            for n2 in self._crazyflies.keys():
+                if n == n2 or (n, n2) in distances.keys() or (n2, n) in distances.keys():
+                    continue
+                distances[(n, n2)] = np.linalg.norm(pos[n2] - pos[n])
+                distances[(n2, n)] = np.linalg.norm(pos[n] - pos[n2])
+        return distances
 
 
     def getAvgPosition(self, positions):
@@ -193,69 +203,89 @@ class Controller(Node):
             return [0, 0, 0]
 
 
-    def allAtPositions(self):
-        atPos = [cf.goal_reached for cf in self._crazyflies.values()]
-        return all(atPos)
-    
-    
-    def avgAtGoal(self):
-        return np.linalg.norm(
-                np.array(self.goal) - 
-                np.array(self.getAvgPosition(list(self.getPositions().values())))) < self.goal_tolerance
-
-
     def allReady(self):
         return all([cf.ready for cf in self._crazyflies.values()])
 
 
-    def performOperations(self):
-        #print("Trying to perform operation")
-        if not (self.allReady() and self.allAtPositions()):
-            #print("All drones were not ready, goal:", self.allAtPositions(), " ready: ", self.allReady(), "Dists to goal:", [np.linalg.norm(np.array(cf._goal_pos) - np.array(cf.position)) for cf in self._crazyflies.values()])
-            return 
-
-        #Ready for next move
-        current_op = -1
-        for (num, op) in enumerate(self.operations):
-            #print("Trying op ", num)
-            if not op.completed:
-                current_op = num
-                #print("Op found")
-                break
-
-        if current_op == -1:
-            # Could not find operation
+    def performPathOp(self):
+        self.positions = self.getPositions()
+        self.distances = self.getDistances()
+        if not self.allReady():
             return
         
-        op = self.operations[current_op]
-        if not op.inProgress:
-            print("Executing op " + op.name)
-            # Operation is not in progress, mark it as such and execute it
-            if op.type == "Move":
-                self.moveAll(op.force)
-            elif op.type == "Takeoff":
-                self.moveAll(op.force)
-            elif op.type == "Land":
-                print("Landing")
-                self.goToGoal([0.0, 0.0, self.landing_height])
-                #self.shutdown()
-            elif op.type == "Goal":
-                self.goToGoal(op.goal)
-                self.goal = op.goal
-            op.inProgress = True
-        else:                
-            if op.type == "Delay":
-                op.counter += 1
-                # Check if we are done counting
-                if op.counter < op.countTo:
-                    return
-            elif op.type == "Goal":
-                if not self.avgAtGoal():
-                    # We are not yet at the correct avg point, keep waiting
-                    return
-            # We are done with operation, mark it as such
-            op.completed = True
+        waitForTakeoff = any([cf.current_op_index == 0 for cf in self._crazyflies.values()])
+        boidForces = self.boidforce()
+        
+        # If any drone has not yet taken off, do so
+        for (name, cf) in self._crazyflies.items():
+            op = self.operations[name][cf.current_op_index]
+            if  op.type == "Takeoff":
+                if not op.inProgress:
+                    print("Executing op " + op.name + " on " + name)
+                    self.applyForce(cf, op.force)
+                    op.inProgress = True
+                elif cf.taken_off:
+                    op.completed = True
+                    cf.current_op_index += 1
+            elif waitForTakeoff:
+                if not op.waiting:
+                    print("Drone " + name + " is waiting for others to takeoff")
+                    op.waiting = True
+                # Do NOT do anything else since we are waiting for takeoff still
 
+            elif any([cf2.current_op_index < cf.current_op_index for cf2 in self._crazyflies.values()]):
+                if not op.waiting:
+                    print("Drone " + name + " is waiting for others to come to the same step")
+                    op.waiting = True
+            
+            elif op.type == "Goal":
+                if not op.inProgress:
+                    print("Executing op " + op.name + " on " + name)
+                    op.inProgress = True
+                else:
+                    gf = self.getForceToGoal(cf, op.goal)
+                    #print("Drone " + name + " has gf " + str(gf))
+                    bf = boidForces[name]
+                    tf = self.limitForce(np.array(gf) + np.array(bf))
+                    #print("Drone " + name + " has tf " + str(tf))
+                    self.applyForce(cf, tf)
+                    # Check if we are at our goal, whilst considering boidforces as well
+                    if self.droneAtGoal(cf, op.goal + boidForces[name]):
+                        op.completed = True
+                        cf.current_op_index += 1
+            
+            elif op.type == "Delay":
+                if not op.inProgress:
+                    print("Executing op " + op.name + " on " + name)
+                    op.inProgress = True
+                else:
+                    op.counter += 1
+                    # Check if we are done counting
+                    if op.counter < op.countTo:
+                        return
+                    op.completed = True
+                    cf.current_op_index += 1
+
+            elif op.type == "Land" and not op.inProgress:
+                print("Executing op " + op.name + " on " + name)
+                origoForce = self.getForceToGoal(cf, [0.0, 0.0, self.landing_height])
+                self.applyForce(cf, [0.0, 0.0, origoForce[2]])
+                op.inProgress = True
+                    
+    
+    def getForceToGoal(self, cf, goal):
+        return (goal - self.positions[cf._drone]) * self.wgoal
+
+    
+    def droneAtGoal(self, cf, goal):
+        return np.linalg.norm(goal - self.positions[cf._drone]) < self.goal_tolerance
+    
+    
+    def limitForce(self, force):
+        #return force
+        norm = np.linalg.norm(force)
+        normForce = force/norm
+        return min(norm, self.maxForce) * normForce
             
     
     #TODO Generate paths dynamically
@@ -264,49 +294,46 @@ class Controller(Node):
 
     def boidforce(self):
         bforce = {}
+
+        neighbours = {}
+        for n in self._crazyflies.keys():
+            neighbours[n] = []
+        
+        for n in self._crazyflies.keys():
+            for n2 in self._crazyflies.keys():
+                if n == n2:
+                    continue
+                if self.distances[(n, n2)] < self.boidDistance:
+                    neighbours[n].append(n2)
+
         # Loop through all crazyflies and calculate the boidforces for them
         for (name, cf) in self._crazyflies.items():
+            if len(neighbours[name]) == 0:
+                bforce[name] = 0.0
+                continue
            # 1/|N|
-            nweight = 1/(len(self._crazyflies) - 1)
+            nweight = 1/(len(neighbours[name]))
            # Fsep
-            fsep = -sum([(np.array(cf2.position) - np.array(cf.position)) /
-                        pow(np.linalg.norm(
-                            np.array(cf2.position) - np.array(cf.position)), 2) 
-                            for cf2 in self._crazyflies.values() if cf2 != cf])
+            fsep = -sum([self.distances[(name, n2)]
+                        / pow(np.linalg.norm(
+                            self.positions[n2] - self.positions[name]), 2) 
+                            for n2 in neighbours[name]])
 
-            valign = nweight * sum([np.array(cf2.velocity) - np.array(cf.velocity) 
-                        for cf2 in self._crazyflies.values() if cf2 != cf])
+            valign = nweight * sum([np.array(self._crazyflies[n2].velocity) - np.array(cf.velocity) 
+                        for n2 in neighbours[name]])
     
-            pcoh = nweight * sum([np.array(cf2.position) - np.array(cf.position) 
-                        for cf2 in self._crazyflies.values() if cf2 != cf])
+            pcoh = nweight * sum([self.distances[(name, n2)] 
+                        for n2 in neighbours[name]])
     
             bforce[name] = self.wsep * fsep + self.walign * valign + self.wcoh * pcoh
+            #print("Drone " + name + " has boidforce " + str(bforce[name]))
         return bforce
-    
-
-    def goalforce(self, goal, forces):
-        # Calculate new average position based on boidforces
-        newpos = []
-        for (name, force) in forces.items():
-            newpos.append(np.array(self._crazyflies[name].position) + np.array(force))
-        avgpos = self.getAvgPosition(newpos)
-        # Return the movement vector to get to the goal
-        return (np.array(goal) - np.array(avgpos))
-    
-
-    def totalForce(self, goal):
-        forces = {}
-        # Create dict with boidforces and apply the vector to follow to go to the goal on each
-        boidforce = self.boidforce()
-        goalforce = self.goalforce(goal, boidforce)
-        for (name, cf) in self._crazyflies.items():
-            forces[name] = np.array(boidforce[name]) + goalforce
-        return forces
     
 
     def applyForce(self, cf, force, rotation=0):
         startPoint = cf.position
-        goal = np.array(startPoint) + np.array(force)
+        goal = np.array(startPoint) + force
+        #print("Drone " + cf._drone + " is getting force " + str(force))
 
         cf.setGoal(goal)
         msg = cf.getNewStateMsg()
@@ -343,18 +370,14 @@ class Controller(Node):
             
             # Send message
             cf.stateMsg = msg
-    
-
-    def goToGoal(self, goal):
-        # Get the forces to apply to each drone to follow Reynold's boid and go to the goal
-        f = self.totalForce(goal)
-        for (name, cf) in self._crazyflies.items():
-            self.applyForce(cf, f[name])
 
 
     # Runs faster than everything else, and shuts down if something is not within the bounding box
     def checkSafety(self):
-        positions = self.getPositions()
+        positions = self.positions
+        dist = self.distances
+        if not positions or not dist:
+            return
         for (name, pos) in positions.items():
             if self._crazyflies[name].battery_warn:
                 self.emergencyLand(name, "HAS LOW BATTERY")
@@ -362,7 +385,7 @@ class Controller(Node):
             for (n2, p2) in positions.items():
                 if p2[2] == -1000 or pos[2] == -1000:
                     break
-                if np.linalg.norm(np.array(p2) - np.array(pos)) < self.safety_distance and not name == n2:
+                if (name, n2) in dist.keys() and dist[(name, n2)] < self.safety_distance:
                     self.emergencyLand(name, "IS TOO CLOSE TO DRONE " + n2 + str(p2) + str(pos))
 
             for i in range(3):
@@ -371,6 +394,7 @@ class Controller(Node):
 
 
     def emergencyLand(self, drone_name, message):
+        self.operation_timer.destroy()
         print("EMERGENCY, DRONE " + drone_name + " " + message + "! LANDING!!")
         self.moveAll([0.0, 0.0, - self._crazyflies[drone_name].position[2] + self.landing_height])
         self.shutdown()
