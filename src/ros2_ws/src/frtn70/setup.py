@@ -19,6 +19,7 @@ setup(
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'GraphicsHandler.py'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'MultiPathGraphicsHandler.py'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'Crazyflie.py'))),
+        (os.path.join('lib', package_name), glob(os.path.join(package_name, 'Astar.py'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

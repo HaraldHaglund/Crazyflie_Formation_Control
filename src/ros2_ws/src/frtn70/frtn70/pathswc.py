@@ -1,5 +1,6 @@
 # Needed to use ros and create nodes
 from copy import deepcopy
+import random
 import rclpy
 import rclpy.duration
 from rclpy.node import Node
@@ -20,6 +21,7 @@ from Crazyflie import Crazyflie
 
 # Import our graphics handler
 from MultiPathGraphicsHandler import GraphicsHandler
+from Astar import Astar
 
 class Operation:
     def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Goal", countTo=0):
@@ -50,7 +52,7 @@ class Controller(Node):
         super().__init__('Swarm_controller')
 
         # Try to perform operations at 100 Hz
-        operation_interval = 0.01
+        self.operation_interval = 0.01
 
         # How far away from the goal we can be to be considered "there"
         self.goal_tolerance = 0.1
@@ -104,14 +106,14 @@ class Controller(Node):
         
         self.simpleOpList = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
-            Operation("Wait 10 s",       type="Delay",   countTo=10.0/operation_interval),
+            Operation("Wait 10 s",       type="Delay",   countTo=10.0/self.operation_interval),
             Operation("Land",           type="Land"),
             ]
         
 
         self.circle_op_start = [
             Operation("Takeoff",        type="Takeoff", force=[0.0, 0.0, 1.0]),
-            Operation("Wait 1 s",       type="Delay",   countTo=1.0/operation_interval),            
+            Operation("Wait 1 s",       type="Delay",   countTo=1.0/self.operation_interval),            
             ]
 
         self.operations = {}
@@ -121,30 +123,33 @@ class Controller(Node):
             for i in range(180, -181, -12):
                 v = math.radians(i)
                 self.operations[name].append(Operation("Move", type="Goal", goal=[math.cos(v)*0.5 + 0.5*num, math.sin(v)*0.5 - 0.5*num, 1.0 + math.sin(v) / 4]))
-            self.operations[name].append(Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval))
+            self.operations[name].append(Operation("Wait 10 s", type="Delay", countTo=10.0/self.operation_interval))
             self.operations[name].append(Operation("Land", type="Land"))
 
+        self.operations = None
+
         # We have now created our operation - so call the method for rendering them (pathplanner should do this after every updated path)
-        self.graphics.displayWaypoints()
+        #self.graphics.displayWaypoints()
 
         # Variables used to decrease computation time
         self.distances = None
         self.positions = None
 
         # Call performOperations function every operation_interval seconds
-        self.operation_timer = self.create_timer(operation_interval, self.performPathOp)
+        self.operation_timer = self.create_timer(self.operation_interval, self.performPathOp)
 
         # Print debug info every 0.5 seconds, 2Hz
-        #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
+        self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
         # Draw avgPoint marker every 0.01 seconds, 100Hz
         self.marker_timer = self.create_timer(0.01, self.graphics.displayAvgPoint)
 
         # Run safety checks at double operation_interval seconds
-        self.safety_timer = self.create_timer(operation_interval / 2, self.checkSafety)
+        self.safety_timer = self.create_timer(self.operation_interval / 2, self.checkSafety)
 
 
     def debugPrint(self):
+        bf = self.boidforce()
         for cf in self._crazyflies.values():
             print("Crazyflie: " + cf._drone,
                 "X: ", "{:.8f}".format(cf.position[0])[0:6],
@@ -155,7 +160,9 @@ class Controller(Node):
                 "Z-rot: ", "{:.4f}".format(cf.rotation[2])[0:4],
                 "W-rot: ", "{:.4f}".format(cf.rotation[3])[0:min(4, len(str(cf.rotation[3])))],
                 "Velocity: ", cf.velocity)
+            print("Boid: ", bf[cf._drone])
         print("Average position: ", self.getAvgPosition(list(self.getPositions().values())))
+        
 
 
     def createDrones(self):
@@ -205,6 +212,32 @@ class Controller(Node):
 
     def allReady(self):
         return all([cf.ready for cf in self._crazyflies.values()])
+    
+
+    def generateOperations(self):
+        goal = [-1.5, 1.0, 1.0]
+        takeoffHeight = 1.0
+        self.operations = {}
+        astar = Astar()
+        for name in self._drones:
+            self.operations[name] = []
+            startPos = self.positions[name]
+            startPos[2] += takeoffHeight
+            self.operations[name].append(Operation("Takeoff", type="Takeoff", force=[0.0, 0.0, takeoffHeight]))
+            self.operations[name].append(Operation("Wait 10 s", type="Delay", countTo=10.0/self.operation_interval))
+            path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), [])
+            for move in path:
+                self.operations[name].append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
+            self.operations[name].append(Operation("Land",           type="Land"))
+
+        min_lenght = min([len(self.operations[name]) for name in self._drones])
+        for name in self._drones:
+            while len(self.operations[name]) > min_lenght:
+                toRemove = random.sample(self.operations[name][3:-3], 1)[0]
+                self.operations[name].remove(toRemove)
+        
+        [print(len(self.operations[name])) for name in self._drones]
+        self.graphics.displayWaypoints()
 
 
     def performPathOp(self):
@@ -212,6 +245,10 @@ class Controller(Node):
         self.distances = self.getDistances()
         if not self.allReady():
             return
+        
+        if not self.operations:
+            self.generateOperations()
+            self.graphics.displayWaypoints()
         
         waitForTakeoff = any([cf.current_op_index == 0 for cf in self._crazyflies.values()])
         boidForces = self.boidforce()
@@ -397,6 +434,7 @@ class Controller(Node):
         self.operation_timer.destroy()
         print("EMERGENCY, DRONE " + drone_name + " " + message + "! LANDING!!")
         self.moveAll([0.0, 0.0, - self._crazyflies[drone_name].position[2] + self.landing_height])
+        time.sleep(5.0)
         self.shutdown()
 
 
