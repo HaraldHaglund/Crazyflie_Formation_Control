@@ -84,7 +84,7 @@
             pose:
               frequency: 10
       cf3:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/3
         initial_position:
         - -0.5
@@ -97,7 +97,7 @@
             pose:
               frequency: 10
       cf4:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/4
         initial_position:
         - 0.0

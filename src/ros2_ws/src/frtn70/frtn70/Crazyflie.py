@@ -87,7 +87,7 @@ class Crazyflie(Node):
         msg.header.frame_id = '/world'
         msg.twist.angular.x = 0.0
         msg.twist.angular.y = 0.0
-        msg.twist.angular.z = 1.0
+        msg.twist.angular.z = 0.0
         msg.twist.linear.x = 0.0
         msg.twist.linear.y = 0.0
         msg.twist.linear.z = 0.0

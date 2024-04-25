@@ -125,6 +125,13 @@ def generate_launch_description():
                 "use_sim_time": PythonExpression(["'", LaunchConfiguration('backend'), "' == 'sim'"]),
             }]
         ),
+        Node(
+            name="PlotJuggler",
+            package="plotjuggler",
+            executable="plotjuggler",
+            arguments=['-n',  'buffer_size 9999'],
+            output="screen"
+        ),
     ]
 
     use_simtime = IfCondition(EqualsSubstitution(LaunchConfiguration('backend'), 'sim'))

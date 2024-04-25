@@ -9,6 +9,7 @@
   <exec_depend>std_msgs</exec_depend>
 
   <depend>rclpy</depend>
+  <depend>plotjuggler</depend>
   <depend>crazyflie_py</depend>
   <depend>rclcpp</depend>
   <depend>tf2_ros</depend>

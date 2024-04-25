@@ -17,6 +17,7 @@ class GraphicsHandler:
         self.waypointPublisher = self.controller.create_publisher(MarkerArray, '/waypoints', 5)
         self.obstaclePublisher = self.controller.create_publisher(MarkerArray, '/obstacles', 5)
         self.forcePublisher = self.controller.create_publisher(Marker, '/forces', 10)
+        self.opPublisher = self.controller.create_publisher(MarkerArray, '/current_op', 5)
 
 
     def displayBoundingBox(self):
@@ -108,7 +109,7 @@ class GraphicsHandler:
             m.pose.orientation.y = 0.0
             m.pose.orientation.z = 0.0
             m.pose.orientation.w = 1.0
-            m.color.r = min(200.0 + i, 255.0)
+            m.color.r = min(100.0 + i, 255.0)
             m.color.g = min(102.0 + i, 255.0)
             m.color.b = 0.0
             m.color.a = 1.0
@@ -183,6 +184,66 @@ class GraphicsHandler:
         m.scale.z = self.goal_tolerance / 2
             
         self.avgPointPublisher.publish(m)
+
+    def displayOp(self, op):        
+        ma = MarkerArray()
+        m = Marker()
+        m1 = Marker()
+        p = op.goal
+        if p is None:
+            p = [0.0, 0.0, 0.0]
+        avgPosMax = p + np.array([self.goal_tolerance for i in range(3)])
+        m.header.frame_id = "world"
+        m.header.stamp = self.controller.get_clock().now().to_msg()
+        m.ns = "current_op"
+        m.type = Marker.SPHERE 
+        m.action = Marker.ADD
+        m.id = 1# + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
+        m.pose.position.x = avgPosMax[0]
+        m.pose.position.y = avgPosMax[1]
+        m.pose.position.z = avgPosMax[2]
+        m.pose.orientation.x = 0.0
+        m.pose.orientation.y = 0.0
+        m.pose.orientation.z = 0.0
+        m.pose.orientation.w = 1.0
+        m.color.r = 128.0
+        m.color.g = 0.0
+        m.color.b = 120.0
+        m.color.a = 1.0
+        m.text = "AvgPosMax"
+        #m.lifetime = rclpy.duration.Duration()
+        m.scale.x = self.goal_tolerance / 2
+        m.scale.y = self.goal_tolerance / 2
+        m.scale.z = self.goal_tolerance / 2
+
+        avgPosMin = p - np.array([self.goal_tolerance for i in range(3)])
+        m1.header.frame_id = "world"
+        m1.header.stamp = self.controller.get_clock().now().to_msg()
+        m1.ns = "current_op"
+        m1.type = Marker.SPHERE 
+        m1.action = Marker.ADD
+        m1.id = 1# + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
+        m1.pose.position.x = avgPosMin[0]
+        m1.pose.position.y = avgPosMin[1]
+        m1.pose.position.z = avgPosMin[2]
+        m1.pose.orientation.x = 0.0
+        m1.pose.orientation.y = 0.0
+        m1.pose.orientation.z = 0.0
+        m1.pose.orientation.w = 1.0
+        m1.color.r = 128.0
+        m1.color.g = 0.0
+        m1.color.b = 120.0
+        m1.color.a = 1.0
+        m1.text = "AvgPosMin"
+        #m.lifetime = rclpy.duration.Duration()
+        m1.scale.x = self.goal_tolerance / 2
+        m1.scale.y = self.goal_tolerance / 2
+        m1.scale.z = self.goal_tolerance / 2
+
+        ma.markers.append(m)
+        ma.markers.append(m1)
+            
+        self.opPublisher.publish(ma)
 
     def displayForce(self, id, startPos, endPos):
         m = Marker()

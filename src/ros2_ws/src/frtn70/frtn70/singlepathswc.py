@@ -70,9 +70,9 @@ class Controller(Node):
         self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
 
         # Tuning parameters for force model
-        self.wcoh = 1.0#0.5
+        self.wcoh = 0.5#0.5
         self.walign = 0.2#0.02
-        self.wsep = 0.5#0.05
+        self.wsep = 0.3#0.05
         self.wgoal = 1.0
         self.boidDistance = 3.8 #How far apart the drones can be to be affected by boidForces
         self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
@@ -271,6 +271,7 @@ class Controller(Node):
             if not op.inProgress:
                 print("Executing op " + op.name)
                 op.inProgress = True
+                self.graphics.displayOp(op)
             else:
                 
                 bfs = {}
@@ -302,6 +303,7 @@ class Controller(Node):
 
         elif op.type == "Land" and not op.inProgress:
             print("Executing op " + op.name)
+            self.wgoal = 1000.0
             for cf in self._crazyflies.values():
                 origoForce = self.getForceToGoal(cf, [0.0, 0.0, self.landing_height])
                 self.applyForce(cf, [0.0, 0.0, origoForce[2]])
@@ -352,7 +354,7 @@ class Controller(Node):
                 if n == n2:
                     continue
                 #if self.distances[(n, n2)] < self.boidDistance:
-                    #neighbours[n].append(n2)
+                #    neighbours[n].append(n2)
                 neighbours[n].append(n2)
 
         # Loop through all crazyflies and calculate the boidforces for them
@@ -363,16 +365,25 @@ class Controller(Node):
            # 1/|N|
             nweight = 1/(len(neighbours[name]))
            # Fsep
-            fsep = -sum([self.distances[(name, n2)]
-                        / pow(np.linalg.norm(
-                            self.positions[n2] - self.positions[name]), 2) 
-                            for n2 in neighbours[name]])
-
+            fsep = -sum([(np.array(cf2.position) - np.array(cf.position)) /
+                        pow(np.linalg.norm(
+                            np.array(cf2.position) - np.array(cf.position)), 2) 
+                            for cf2 in self._crazyflies.values() if cf2 != cf])
+            #fsep = -sum([self.positions[n2] - self.positions[name]
+            #            / pow(np.linalg.norm(
+            #                self.positions[n2] - self.positions[name]), 2) 
+            #                for n2 in neighbours[name]])
+            #print([np.sqrt(np.dot(self.positions[n2] - self.positions[name], self.positions[n2] - self.positions[name])) for n2 in neighbours[name]])
+            #                for n2 in neighbours[name]])
             valign = nweight * sum([np.array(self._crazyflies[n2].velocity) - np.array(cf.velocity) 
                         for n2 in neighbours[name]])
     
-            pcoh = nweight * sum([self.distances[(name, n2)] 
+            pcoh = nweight * sum([self.positions[n2] - self.positions[name]
                         for n2 in neighbours[name]])
+            
+            #for d in [self.distances[(name, n2)] for n2 in neighbours[name]]:
+            #    print("Drone " + name + " has distance " + str(d) )
+            #print("Drone " + name + " has pcoh " + str(pcoh*self.wcoh) + " valign " + str(valign*self.walign) + " fsep " + str(fsep*self.wsep))
     
             bforce[name] = self.wsep * fsep + self.walign * valign + self.wcoh * pcoh
             #print("Drone " + name + " has boidforce " + str(bforce[name]))
