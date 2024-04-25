@@ -2,6 +2,7 @@
 from visualization_msgs.msg import MarkerArray, Marker
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
+import numpy as np
 
 
 class GraphicsHandler:
@@ -15,6 +16,7 @@ class GraphicsHandler:
         self.boundingBoxPublisher = self.controller.create_publisher(MarkerArray, '/boundingBox', 5)
         self.waypointPublisher = self.controller.create_publisher(MarkerArray, '/waypoints', 5)
         self.obstaclePublisher = self.controller.create_publisher(MarkerArray, '/obstacles', 5)
+        self.forcePublisher = self.controller.create_publisher(Marker, '/forces', 10)
 
 
     def displayBoundingBox(self):
@@ -153,13 +155,16 @@ class GraphicsHandler:
 
     def displayAvgPoint(self):        
         m = Marker()
-        avgPos = self.controller.getAvgPosition(list(self.controller.getPositions().values()))
+        p = self.controller.avgPos
+        if p is None:
+            p = [0.0, 0.0, 0.0]
+        avgPos = p
         m.header.frame_id = "world"
         m.header.stamp = self.controller.get_clock().now().to_msg()
         m.ns = "average_position"
         m.type = Marker.SPHERE 
         m.action = Marker.ADD
-        m.id = 1 + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
+        m.id = 1# + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
         m.pose.position.x = avgPos[0]
         m.pose.position.y = avgPos[1]
         m.pose.position.z = avgPos[2]
@@ -178,3 +183,43 @@ class GraphicsHandler:
         m.scale.z = self.goal_tolerance / 2
             
         self.avgPointPublisher.publish(m)
+
+    def displayForce(self, id, startPos, endPos):
+        m = Marker()
+        m.header.frame_id = "world"
+        m.header.stamp = self.controller.get_clock().now().to_msg()
+        m.ns = "force_" + str(id)
+        m.type = Marker.ARROW 
+        m.action = Marker.ADD
+        m.id = id
+        m.pose.position.x = 0.0
+        m.pose.position.y = 0.0
+        m.pose.position.z = 0.0
+        m.pose.orientation.x = 0.0
+        m.pose.orientation.y = 0.0
+        m.pose.orientation.z = 0.0
+        m.pose.orientation.w = 1.0
+        m.color.r = 0.0
+        m.color.g = 0.0
+        m.color.b = 255.0
+        m.color.a = 1.0
+        m.scale.x = 0.01
+        m.scale.y = 0.015
+        m.scale.z = 0.02
+
+        p1 = Point()
+        p2 = Point()
+        p1.x = startPos[0]
+        p1.y = startPos[1]
+        p1.z = startPos[2]
+        
+        d = np.array(endPos) - np.array(startPos)
+        n = np.linalg.norm(d)
+        nv = d/n
+        nv = nv * (0.25 + n*5) # Lengthen to length 0.25m
+        p2.x = float(startPos[0] + nv[0])
+        p2.y = float(startPos[1] + nv[1])
+        p2.z = float(startPos[2] + nv[2])
+        m.points = [p1, p2]
+            
+        self.forcePublisher.publish(m)

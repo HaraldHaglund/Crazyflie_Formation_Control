@@ -14,6 +14,7 @@ Panels:
         - /Marker1
         - /Marker1/Topic1
         - /MarkerArray3
+        - /Marker2
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz_common/Selection
@@ -60,13 +61,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        cf1:
-          Value: true
-        cf2:
-          Value: true
-        cf3:
-          Value: true
         cf4:
+          Value: true
+        cf6:
           Value: true
         world:
           Value: true
@@ -77,13 +74,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          cf1:
-            {}
-          cf2:
-            {}
-          cf3:
-            {}
           cf4:
+            {}
+          cf6:
             {}
       Update Interval: 0
       Value: true
@@ -91,7 +84,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        corner: true
       Topic:
         Depth: 1
         Durability Policy: Volatile
@@ -103,7 +96,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        waypoint: true
       Topic:
         Depth: 1
         Durability Policy: Volatile
@@ -115,7 +108,7 @@ Visualization Manager:
       Enabled: true
       Name: Marker
       Namespaces:
-        {}
+        average_position: true
       Topic:
         Depth: 1
         Durability Policy: Volatile
@@ -128,13 +121,27 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        obstacle: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /obstacles
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        force_4: true
+        force_6: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /forces
       Value: true
   Enabled: true
   Global Options:
@@ -182,7 +189,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5.136698246002197
+      Distance: 6.306979656219482
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -197,10 +204,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5750485062599182
+      Pitch: 0.6350484490394592
       Target Frame: cf1
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.164663314819336
+      Yaw: 4.139659881591797
     Saved: ~
 Window Geometry:
   Displays:

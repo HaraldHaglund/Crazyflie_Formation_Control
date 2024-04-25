@@ -126,8 +126,7 @@ class Controller(Node):
 
         self.circle_op.append(Operation("Wait 10 s", type="Delay", countTo=10.0/operation_interval))
         self.circle_op.append(Operation("Land", type="Land"))
-        #TODO Rewrite code to have individual paths for each drone, and apply boid forces to drones that are within 50 cm of each other
-        # 
+        
         self.operations = self.circle_op
 
         # We have now created our operation - so call the method for rendering them (pathplanner should do this after every updated path)
