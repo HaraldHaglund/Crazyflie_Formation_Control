@@ -9,12 +9,16 @@ class GraphicsHandler:
     def __init__(self, controller):
         self.controller = controller
         self.goal_tolerance = self.controller.goal_tolerance
+        self.lastPos = np.array([0.0, 0.0, 0.0])
+        self.currentPos = np.array([0.0, 0.0, 0.0])
+        self.num_actual_pos_dots = 0
 
 
     def createMarkerPublishers(self):
         self.avgPointPublisher = self.controller.create_publisher(Marker, '/avgPoint', 5)
         self.boundingBoxPublisher = self.controller.create_publisher(MarkerArray, '/boundingBox', 5)
         self.waypointPublisher = self.controller.create_publisher(MarkerArray, '/waypoints', 5)
+        self.actualPathPublisher = self.controller.create_publisher(Marker, '/actualPath', 5)
         self.obstaclePublisher = self.controller.create_publisher(MarkerArray, '/obstacles', 5)
         self.forcePublisher = self.controller.create_publisher(Marker, '/forces', 10)
         self.opPublisher = self.controller.create_publisher(MarkerArray, '/current_op', 5)
@@ -157,6 +161,8 @@ class GraphicsHandler:
     def displayAvgPoint(self):        
         m = Marker()
         p = self.controller.avgPos
+        if p is not None:
+            self.currentPos = np.array(p)
         if p is None:
             p = [0.0, 0.0, 0.0]
         avgPos = p
@@ -184,6 +190,7 @@ class GraphicsHandler:
         m.scale.z = self.goal_tolerance / 2
             
         self.avgPointPublisher.publish(m)
+        self.displayActualPathPoint()
 
     def displayOp(self, op):        
         ma = MarkerArray()
@@ -284,3 +291,32 @@ class GraphicsHandler:
         m.points = [p1, p2]
             
         self.forcePublisher.publish(m)
+
+    def displayActualPathPoint(self):   
+        if np.linalg.norm(self.currentPos - self.lastPos) > 0.1:
+            m = Marker()
+            self.lastPos = self.currentPos
+            m.header.frame_id = "world"
+            m.header.stamp = self.controller.get_clock().now().to_msg()
+            m.ns = "actual_position"
+            m.type = Marker.SPHERE 
+            m.action = Marker.ADD
+            m.id = self.num_actual_pos_dots# + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
+            m.pose.position.x = self.currentPos[0]
+            m.pose.position.y = self.currentPos[1]
+            m.pose.position.z = self.currentPos[2]
+            m.pose.orientation.x = 0.0
+            m.pose.orientation.y = 0.0
+            m.pose.orientation.z = 0.0
+            m.pose.orientation.w = 1.0
+            m.color.r = 255.0
+            m.color.g = 128.0
+            m.color.b = 128.0
+            m.color.a = 1.0
+            #m.lifetime = rclpy.duration.Duration()
+            m.scale.x = self.goal_tolerance / 4
+            m.scale.y = self.goal_tolerance / 4
+            m.scale.z = self.goal_tolerance / 4
+                
+            self.actualPathPublisher.publish(m)
+            self.num_actual_pos_dots += 1

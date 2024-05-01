@@ -19,7 +19,7 @@ robots:
     #       vars: ["acc.x", "acc.y"]
     #
   cf2:
-    enabled: true
+    enabled: false
     uri: radio://0/90/2M/2
     initial_position: [0.5, 0.0, 0.0]
     type: cf21  # see robot_types
@@ -62,7 +62,7 @@ robots:
           frequency: 10 # Hz
 
   cf5:
-    enabled: false
+    enabled: true
     uri: radio://0/90/2M/5
     initial_position: [-1.0, -1.0, 0.0]
     type: cf21  # see robot_types
@@ -96,7 +96,7 @@ robot_types:
     motion_capture:
       enabled: true
       # only if enabled; see motion_capture.yaml
-      marker: default_single_marker
+      marker: default
       dynamics: default
     big_quad: false
     battery:
@@ -110,10 +110,22 @@ robot_types:
       default_topics:
         pose:
           frequency: 10 # Hz
-      #custom_topics:
-      #  topic_name3: 
-      #    frequency: 1
-      #    vars: ["acc.x", "acc.y", "acc.z", "ctrltarget.x"]
+      custom_topics:
+        motorspeed: 
+          frequency: 10
+          vars: ["motor.m1", "motor.m2", "motor.m3", "motor.m4"]
+        motorvars:
+          frequency: 10
+          vars: ["motor.m1req", "motor.m2req", "motor.m3req", "motor.m4req"]
+        lighthouseInfo:
+          frequency: 10
+          vars: ["lighthouse.bsAvailable", "lighthouse.status", "lighthouse.bsActive"]
+        etc:
+          frequency: 10
+          vars: ["controller.cmd_thrust", "stabilizer.thrust", "controller.actuatorThrust"]
+        #pos:
+        #  frequency: 10
+        #  vars: ["kalman.StateX", "kalman.StateY", "kalman.StateZ"]
 
   cf21_mocap_deck:
     motion_capture:
@@ -157,9 +169,9 @@ all:
     stabilizer:
       estimator: 2 # 1: complementary, 2: kalman
       controller: 2 # 1: PID, 2: mellinger
-    locSrv:
-      extPosStdDev: 1e-3
-      extQuatStdDev: 0.5e-1
+    #locSrv:
+    #  extPosStdDev: 1e-3
+    #  extQuatStdDev: 0.5e-1
     kalman:
       resetEstimation: 1
   broadcasts:

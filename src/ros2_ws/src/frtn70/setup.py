@@ -21,6 +21,7 @@ setup(
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'Crazyflie.py'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'Astar.py'))),
         (os.path.join('lib', package_name), glob(os.path.join(package_name, 'singlepathswc.py'))),
+        (os.path.join('lib', package_name), glob(os.path.join(package_name, 'single.py'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -33,7 +34,8 @@ setup(
         'console_scripts': [
             'swc = frtn70.swc:main',
             'pathswc = frtn70.pathswc:main',
-            'singlepathswc = frtn70.singlepathswc:main'
+            'singlepathswc = frtn70.singlepathswc:main',
+            'simple = frtn70.single:main'
         ],
     },
 )

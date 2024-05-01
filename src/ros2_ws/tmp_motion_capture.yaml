@@ -126,12 +126,12 @@
         - 0.0
         - 0.5
         - 0.0
-        marker: default_single_marker
+        marker: default
         dynamics: default
-      cf2:
+      cf5:
         initial_position:
-        - 0.5
+        - -1.0
+        - -1.0
         - 0.0
-        - 0.0
-        marker: default_single_marker
+        marker: default
         dynamics: default

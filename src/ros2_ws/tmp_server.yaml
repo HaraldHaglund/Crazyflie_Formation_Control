@@ -11,7 +11,7 @@
         min_unicast_ack_rate: 0.9
         min_unicast_receive_rate: 0.9
         min_broadcast_receive_rate: 0.9
-        publish_stats: false
+        publish_stats: true
     firmware_params:
       query_all_values_on_connect: false
     sim:
@@ -71,7 +71,7 @@
             pose:
               frequency: 10
       cf2:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/2
         initial_position:
         - 0.5
@@ -110,7 +110,7 @@
             pose:
               frequency: 10
       cf5:
-        enabled: false
+        enabled: true
         uri: radio://0/90/2M/5
         initial_position:
         - -1.0
@@ -139,7 +139,7 @@
       cf21:
         motion_capture:
           enabled: true
-          marker: default_single_marker
+          marker: default
           dynamics: default
         big_quad: false
         battery:
@@ -150,6 +150,33 @@
           default_topics:
             pose:
               frequency: 10
+          custom_topics:
+            motorspeed:
+              frequency: 10
+              vars:
+              - motor.m1
+              - motor.m2
+              - motor.m3
+              - motor.m4
+            motorvars:
+              frequency: 10
+              vars:
+              - motor.m1req
+              - motor.m2req
+              - motor.m3req
+              - motor.m4req
+            lighthouseInfo:
+              frequency: 10
+              vars:
+              - lighthouse.bsAvailable
+              - lighthouse.status
+              - lighthouse.bsActive
+            etc:
+              frequency: 10
+              vars:
+              - controller.cmd_thrust
+              - stabilizer.thrust
+              - controller.actuatorThrust
       cf21_mocap_deck:
         motion_capture:
           enabled: true
@@ -173,9 +200,6 @@
         stabilizer:
           estimator: 2
           controller: 2
-        locSrv:
-          extPosStdDev: 1e-3
-          extQuatStdDev: 0.05
         kalman:
           resetEstimation: 1
       broadcasts:

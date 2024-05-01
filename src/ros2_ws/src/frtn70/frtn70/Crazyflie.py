@@ -45,7 +45,7 @@ class Crazyflie(Node):
         # Might have to set this to initial position after startup.
         self._goal_pos = [0, 0, 0]
         self._goal_rot = [0, 0, 0, 0]
-        self.taken_off = True
+        self.taken_off = False
         self._goal_tolerance = goal_tolerance
         self.current_op_index = 0
         
@@ -91,9 +91,9 @@ class Crazyflie(Node):
         msg.twist.linear.x = 0.0
         msg.twist.linear.y = 0.0
         msg.twist.linear.z = 0.0
-        msg.acc.x = 1.0
-        msg.acc.y = 1.0
-        msg.acc.z = 1.0
+        msg.acc.x = 0.0
+        msg.acc.y = 0.0
+        msg.acc.z = 0.0
         return msg
 
     
@@ -108,11 +108,11 @@ class Crazyflie(Node):
         self.destroy_node()
 
     
-    def setGoal(self, pos, rot=[0, 0, 0, 0]):
+    def setGoal(self, pos, rot=[0.0, 0.0, 0.0, 0.0]):
         self.shouldStream = True
         self._goal_pos = pos
         self._goal_rot = rot
-        self.taken_off = False
+        #self.taken_off = False
 
 
     def on_timer(self):
@@ -169,7 +169,7 @@ class Crazyflie(Node):
                 self._goal_pos = self.position
         
         # Check if we have reached goal
-        if not self.taken_off:
+        if not self.taken_off and self.position[2] > 0.2:
             self.taken_off = np.linalg.norm(
                 np.array(self._goal_pos) - 
                 np.array(self.position)) < self._goal_tolerance

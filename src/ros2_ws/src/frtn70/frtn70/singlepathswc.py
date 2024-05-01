@@ -7,6 +7,7 @@ from rclpy.node import Node
 
 # Fullstate control
 from crazyflie_interfaces.msg import FullState
+from crazyflie_interfaces.srv import Takeoff
 import rowan
 
 # For initial delay in startup
@@ -148,7 +149,7 @@ class Controller(Node):
         self.marker_timer = self.create_timer(0.01, self.graphics.displayAvgPoint)
 
         # Run safety checks at double operation_interval seconds
-        self.safety_timer = self.create_timer(self.operation_interval / 2, self.checkSafety)
+        self.safety_timer = self.create_timer(self.operation_interval, self.checkSafety)
 
 
     def debugPrint(self):
@@ -254,10 +255,16 @@ class Controller(Node):
         if op.type == "Takeoff":
             if not op.inProgress:
                 print("Executing op " + op.name)
-                self.moveAll(op.force)
-                #for cf in self._crazyflies.values():
-                #    self.applyForce(cf, op.force)
+                #self.moveAll(op.force)
+                for cf in self._crazyflies.values():
+                    cf._goal = list(np.array(cf.position) + np.array([0.0, 0.0, 1.0]))
+                c = self.create_client(Takeoff, "/all/takeoff")
+                tm = Takeoff.Request()
+                tm.duration = rclpy.duration.Duration(seconds=4).to_msg()
+                tm.height = 1.0
+                c.call_async(tm)
                 op.inProgress = True
+                time.sleep(5)
             elif all([cf.taken_off for cf in self._crazyflies.values()]):
                 print("All have taken off")
                 self.current_op_index += 1

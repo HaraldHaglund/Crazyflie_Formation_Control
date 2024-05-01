@@ -77,6 +77,7 @@ def generate_launch_description():
         DeclareLaunchArgument('debug', default_value='False'),
         DeclareLaunchArgument('rviz', default_value='True'),
         DeclareLaunchArgument('gui', default_value='False'),
+        DeclareLaunchArgument('graph', default_value='False'),
         DeclareLaunchArgument('server_yaml_file', default_value=''),
         DeclareLaunchArgument('teleop_yaml_file', default_value=''),
         DeclareLaunchArgument('mocap_yaml_file', default_value=''),
@@ -127,6 +128,7 @@ def generate_launch_description():
         ),
         Node(
             name="PlotJuggler",
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('graph'), 'True')),
             package="plotjuggler",
             executable="plotjuggler",
             arguments=['-n',  'buffer_size 9999'],
