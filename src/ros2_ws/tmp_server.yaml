@@ -65,37 +65,22 @@
         - 0.5
         - 0.0
         type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
       cf2:
-        enabled: false
+        enabled: true
         uri: radio://0/90/2M/2
-        initial_position:
-        - 0.5
-        - 0.0
-        - 0.0
-        type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
-      cf3:
-        enabled: false
-        uri: radio://0/90/2M/3
         initial_position:
         - -0.5
         - 0.0
         - 0.0
         type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
+      cf3:
+        enabled: true
+        uri: radio://0/90/2M/3
+        initial_position:
+        - -0.5
+        - 0.5
+        - 0.0
+        type: cf21
       cf4:
         enabled: false
         uri: radio://0/90/2M/4
@@ -104,24 +89,14 @@
         - -0.5
         - 0.0
         type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
       cf5:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/5
         initial_position:
         - -1.0
         - -1.0
         - 0.0
         type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
       cf6:
         enabled: false
         uri: radio://0/90/2M/6
@@ -130,11 +105,6 @@
         - -0.8
         - 0.0
         type: cf21
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
     robot_types:
       cf21:
         motion_capture:
@@ -145,38 +115,6 @@
         battery:
           voltage_warning: 3.8
           voltage_critical: 3.7
-        firmware_logging:
-          enabled: true
-          default_topics:
-            pose:
-              frequency: 10
-          custom_topics:
-            motorspeed:
-              frequency: 10
-              vars:
-              - motor.m1
-              - motor.m2
-              - motor.m3
-              - motor.m4
-            motorvars:
-              frequency: 10
-              vars:
-              - motor.m1req
-              - motor.m2req
-              - motor.m3req
-              - motor.m4req
-            lighthouseInfo:
-              frequency: 10
-              vars:
-              - lighthouse.bsAvailable
-              - lighthouse.status
-              - lighthouse.bsActive
-            etc:
-              frequency: 10
-              vars:
-              - controller.cmd_thrust
-              - stabilizer.thrust
-              - controller.actuatorThrust
       cf21_mocap_deck:
         motion_capture:
           enabled: true
@@ -194,6 +132,41 @@
             frequency: 10
           status:
             frequency: 1
+        custom_topics:
+          motorspeed:
+            frequency: 10
+            vars:
+            - motor.m1
+            - motor.m2
+            - motor.m3
+            - motor.m4
+          motorvars:
+            frequency: 10
+            vars:
+            - motor.m1req
+            - motor.m2req
+            - motor.m3req
+            - motor.m4req
+          lighthouseInfo:
+            frequency: 10
+            vars:
+            - lighthouse.bsAvailable
+            - lighthouse.bsActive
+            - lighthouse.status
+            - lighthouse.comSync
+          thrust:
+            frequency: 10
+            vars:
+            - controller.cmd_thrust
+            - stabilizer.thrust
+            - controller.actuatorThrust
+          flightStatus:
+            frequency: 5
+            vars:
+            - sys.canfly
+            - sys.isTumbled
+            - sys.isFlying
+            - supervisor.info
       firmware_params:
         commander:
           enHighLevel: 0

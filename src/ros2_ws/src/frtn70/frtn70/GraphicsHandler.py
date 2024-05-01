@@ -118,9 +118,9 @@ class GraphicsHandler:
             m.color.b = 0.0
             m.color.a = 1.0
             #m.lifetime = rclpy.duration.Duration()
-            m.scale.x = self.goal_tolerance
-            m.scale.y = self.goal_tolerance
-            m.scale.z = self.goal_tolerance
+            m.scale.x = self.goal_tolerance / 4
+            m.scale.y = self.goal_tolerance / 4
+            m.scale.z = self.goal_tolerance / 4
 
             markers.markers.append(m)
 
@@ -196,6 +196,7 @@ class GraphicsHandler:
         ma = MarkerArray()
         m = Marker()
         m1 = Marker()
+        m2 = Marker()
         p = op.goal
         if p is None:
             p = [0.0, 0.0, 0.0]
@@ -247,8 +248,32 @@ class GraphicsHandler:
         m1.scale.y = self.goal_tolerance / 2
         m1.scale.z = self.goal_tolerance / 2
 
+        m2.header.frame_id = "world"
+        m2.header.stamp = self.controller.get_clock().now().to_msg()
+        m2.ns = "current_op"
+        m2.type = Marker.SPHERE 
+        m2.action = Marker.ADD
+        m2.id = 1# + len(self.controller.operations) + 12 # 12 since that is the number of edges in the bounding box
+        m2.pose.position.x = p[0]
+        m2.pose.position.y = p[1]
+        m2.pose.position.z = p[2]
+        m2.pose.orientation.x = 0.0
+        m2.pose.orientation.y = 0.0
+        m2.pose.orientation.z = 0.0
+        m2.pose.orientation.w = 1.0
+        m2.color.r = 128.0
+        m2.color.g = 0.0
+        m2.color.b = 120.0
+        m2.color.a = 1.0
+        m2.text = "AvgPosMin"
+        #m.lifetime = rclpy.duration.Duration()
+        m2.scale.x = self.goal_tolerance / 2
+        m2.scale.y = self.goal_tolerance / 2
+        m2.scale.z = self.goal_tolerance / 2
+
         ma.markers.append(m)
         ma.markers.append(m1)
+        ma.markers.append(m2)
             
         self.opPublisher.publish(ma)
 
@@ -284,7 +309,7 @@ class GraphicsHandler:
         d = np.array(endPos) - np.array(startPos)
         n = np.linalg.norm(d)
         nv = d/n
-        nv = nv * (0.25 + n*5) # Lengthen to length 0.25m
+        nv = nv * (0.05 + n*5) # Lengthen to length 0.05m + 5n
         p2.x = float(startPos[0] + nv[0])
         p2.y = float(startPos[1] + nv[1])
         p2.z = float(startPos[2] + nv[2])

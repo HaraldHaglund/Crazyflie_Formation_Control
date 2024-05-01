@@ -24,6 +24,8 @@ from Crazyflie import Crazyflie
 from GraphicsHandler import GraphicsHandler
 from Astar import Astar
 
+from std_msgs.msg import Float64MultiArray
+
 class Operation:
     def __init__(self, name, goal=[0.0, 0.0, 0.0], force=[0.0, 0.0, 0.0], type="Goal", countTo=0):
         self.name = name
@@ -52,8 +54,8 @@ class Controller(Node):
         # Run constructor
         super().__init__('Swarm_controller')
 
-        # Try to perform operations at 100 Hz
-        self.operation_interval = 0.01
+        # Try to perform operations at 10 Hz
+        self.operation_interval = 0.1
 
         # How far away from the goal we can be to be considered "there"
         self.goal_tolerance = 0.1
@@ -70,13 +72,22 @@ class Controller(Node):
         # How big our area is
         self.bounding_box_size = [4.0/2, 3.0/2, 2.0]
 
+        # How close to the edge of the area can the drone be
+        self.edge_distance = 0.2
+
         # Tuning parameters for force model
-        self.wcoh = 0.5#0.5
+        self.wcoh = 1.5#0.5
         self.walign = 0.2#0.02
-        self.wsep = 0.3#0.05
+        self.wsep = 0.1#0.05
         self.wgoal = 1.0
         self.boidDistance = 3.8 #How far apart the drones can be to be affected by boidForces
         self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
+
+        # What we should call to get the drones to takeoff
+        self.takeoffHeight = 1.0
+        self.takeoffRequest = Takeoff.Request()
+        self.takeoffRequest.duration = rclpy.duration.Duration(seconds=4).to_msg()
+        self.takeoffRequest.height = self.takeoffHeight
 
         # Get drone names, need to wait for them to show up        
         self._drones = set()
@@ -117,16 +128,6 @@ class Controller(Node):
             Operation("Wait 1 s",       type="Delay",   countTo=1.0/self.operation_interval),            
             ]
 
-        self.operations = {}
-        for (num, name) in enumerate(self._drones):
-            #self.operations[name] = deepcopy(self.simpleOpList)
-            self.operations[name] = deepcopy(self.circle_op_start)
-            for i in range(180, -181, -12):
-                v = math.radians(i)
-                self.operations[name].append(Operation("Move", type="Goal", goal=[math.cos(v)*0.5 + 0.5*num, math.sin(v)*0.5 - 0.5*num, 1.0 + math.sin(v) / 4]))
-            self.operations[name].append(Operation("Wait 10 s", type="Delay", countTo=10.0/self.operation_interval))
-            self.operations[name].append(Operation("Land", type="Land"))
-
         self.operations = self.circle_op_start
         self.operationsGenerated = False
 
@@ -143,13 +144,16 @@ class Controller(Node):
         self.operation_timer = self.create_timer(self.operation_interval, self.performPathOp)
 
         # Print debug info every 0.5 seconds, 2Hz
-        #self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
+        self.debug_print_timer = self.create_timer(0.5, self.debugPrint)
 
-        # Draw avgPoint marker every 0.01 seconds, 100Hz
-        self.marker_timer = self.create_timer(0.01, self.graphics.displayAvgPoint)
+        # Draw avgPoint marker every 0.05 seconds, 20Hz
+        self.marker_timer = self.create_timer(0.05, self.graphics.displayAvgPoint)
 
-        # Run safety checks at double operation_interval seconds
-        self.safety_timer = self.create_timer(self.operation_interval, self.checkSafety)
+        # Run safety checks at 20 Hz (as often as we get new measurements)
+        self.safety_timer = self.create_timer(0.05, self.checkSafety)
+
+        # Publisher for distance data for tuning boid forces
+        self.dist_publisher = self.create_publisher(Float64MultiArray, "/distances", 10)
 
 
     def debugPrint(self):
@@ -164,7 +168,7 @@ class Controller(Node):
                 "Z-rot: ", "{:.4f}".format(cf.rotation[2])[0:4],
                 "W-rot: ", "{:.4f}".format(cf.rotation[3])[0:min(4, len(str(cf.rotation[3])))],
                 "Velocity: ", cf.velocity)
-            print("Boid: ", bf[cf._drone])
+            #print("Boid: ", bf[cf._drone])
         print("Average position: ", self.getAvgPosition(self.positions))
         
 
@@ -173,7 +177,7 @@ class Controller(Node):
         for cf_name in self._drones:
             print("Created drone " + cf_name)
             # Create crazyflie node, with a goal tolerance of goal_tolerance
-            self._crazyflies[cf_name] = Crazyflie(cf_name, self.goal_tolerance)
+            self._crazyflies[cf_name] = Crazyflie(cf_name, self.goal_tolerance, self.takeoffHeight)
 
     
     def shutdown(self):
@@ -221,7 +225,18 @@ class Controller(Node):
     def generateOperations(self):
         #goal = [-1.5, 1.0, 1.0]
         goal = self.avgPos + np.array([0.5, 0.5, 0.5])
-        goal2 = goal + np.array([-1.0, -1.5, -1.0])
+        goal2 = goal + np.array([-1.5, -1.5, -1.0])
+        for i in range(0,3):
+            while goal[i] > (self.bounding_box_size[i] - 0.25):
+                goal[i] -= 0.1
+            while goal[i] < (-self.bounding_box_size[i] + 0.25):
+                goal[i] += 0.1
+            
+        for i in range(0,3):
+            while goal2[i] > (self.bounding_box_size[i] - 0.25):
+                goal2[i] -= 0.1
+            while goal2[i] < (-self.bounding_box_size[i] + 0.25):
+                goal2[i] += 0.1
         astar = Astar()
         startPos = self.getAvgPosition(self.positions)
         path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), [])
@@ -240,11 +255,25 @@ class Controller(Node):
         
         self.graphics.displayWaypoints()
 
+    
+    def publishDistances(self):
+        message = Float64MultiArray()
+        visited = []
+        for c1 in self._crazyflies:
+            for c2 in self._crazyflies:
+                if c1 == c2 or (c1, c2) in visited:
+                    continue
+                visited.append((c1, c2))
+                visited.append((c2, c1))
+                message.data.append(self.distances[(c1, c2)])
+        self.dist_publisher.publish(message)
+
 
     def performPathOp(self):
         self.positions = self.getPositions()
         self.distances = self.getDistances()
         self.avgPos = self.getAvgPosition(self.positions)
+        self.publishDistances()
         if not self.allReady():
             return
         
@@ -256,15 +285,14 @@ class Controller(Node):
             if not op.inProgress:
                 print("Executing op " + op.name)
                 #self.moveAll(op.force)
-                for cf in self._crazyflies.values():
-                    cf._goal = list(np.array(cf.position) + np.array([0.0, 0.0, 1.0]))
+                #for cf in self._crazyflies.values():
+                #    cf._goal = list(np.array(cf.position) + np.array([0.0, 0.0, 1.0]))
                 c = self.create_client(Takeoff, "/all/takeoff")
-                tm = Takeoff.Request()
-                tm.duration = rclpy.duration.Duration(seconds=4).to_msg()
-                tm.height = 1.0
-                c.call_async(tm)
+                
+                c.call_async(self.takeoffRequest)
                 op.inProgress = True
-                time.sleep(5)
+
+
             elif all([cf.taken_off for cf in self._crazyflies.values()]):
                 print("All have taken off")
                 self.current_op_index += 1
@@ -399,6 +427,17 @@ class Controller(Node):
 
     def applyForce(self, cf, force, rotation=0):
         startPoint = cf.position
+
+        # Do not move too close to the edge
+        for i in range(0,3):
+            if startPoint[i] > (self.bounding_box_size[i] - self.edge_distance) and force[i] > 0:
+                print("Not allowing drone " + cf._drone + " to move closer to the edge, as it is closer than our margins")
+                force[i] = 0
+            elif startPoint[i] < (-self.bounding_box_size[i] + self.edge_distance) and force[i] < 0 and i != 2:
+                force[i] = 0
+                print("Not allowing drone " + cf._drone + " to move closer to the edge, as it is closer than our margins")
+                
+                
         goal = np.array(startPoint) + force
         self.graphics.displayForce(int(cf._drone[-1]), startPoint, goal)
         #print("Drone " + cf._drone + " is getting force " + str(force))

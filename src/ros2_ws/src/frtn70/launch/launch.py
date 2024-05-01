@@ -141,8 +141,8 @@ def generate_launch_description():
     ld.insert(0, backend)
 
     if use_simtime:
-        print("Using simtime!!")
-        ld.insert(1, SetParameter(name='use_sim_time', value=True))
+        print("Using simtime if true: ", EqualsSubstitution(LaunchConfiguration('backend'), 'sim'))
+        ld.insert(1, SetParameter(name='use_sim_time', value=EqualsSubstitution(LaunchConfiguration('backend'), 'sim')))
 
 
     return LaunchDescription(ld)

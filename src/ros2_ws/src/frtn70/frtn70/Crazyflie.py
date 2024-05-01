@@ -16,7 +16,7 @@ import numpy as np
 
 class Crazyflie(Node):
 
-    def __init__(self, drone, goal_tolerance):
+    def __init__(self, drone, goal_tolerance, takeoff_height):
         super().__init__(drone + '_frame_listener')
         self._drone = drone
 
@@ -28,8 +28,8 @@ class Crazyflie(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self, spin_thread=True)
 
-        # Call on_timer function every 0.01 seconds, 100Hz
-        self.timer = self.create_timer(0.01, self.on_timer)
+        # Call on_timer function every 0.02 seconds, 20Hz
+        self.timer = self.create_timer(0.05, self.on_timer)
         
         # Store last known position
         self.position = [0, 0, -1000]
@@ -47,6 +47,7 @@ class Crazyflie(Node):
         self._goal_rot = [0, 0, 0, 0]
         self.taken_off = False
         self._goal_tolerance = goal_tolerance
+        self.takeoffHeight = takeoff_height
         self.current_op_index = 0
         
         # Check if the connection to ROS is working and we are ready
@@ -169,7 +170,9 @@ class Crazyflie(Node):
                 self._goal_pos = self.position
         
         # Check if we have reached goal
-        if not self.taken_off and self.position[2] > 0.2:
-            self.taken_off = np.linalg.norm(
-                np.array(self._goal_pos) - 
-                np.array(self.position)) < self._goal_tolerance
+        height = self.position[2]
+        if not self.taken_off and (self.takeoffHeight - self._goal_tolerance) < height < (self.takeoffHeight + self._goal_tolerance):
+            self.taken_off = True
+            #self.taken_off = np.linalg.norm(
+            #    np.array(self._goal_pos) - 
+            #    np.array(self.position)) < self._goal_tolerance
