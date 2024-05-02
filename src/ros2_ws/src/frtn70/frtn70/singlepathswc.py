@@ -76,9 +76,9 @@ class Controller(Node):
         self.edge_distance = 0.2
 
         # Tuning parameters for force model
-        self.wcoh = 1.5#0.5
-        self.walign = 0.2#0.02
-        self.wsep = 0.1#0.05
+        self.wcoh = 0.8
+        self.walign = 0.2
+        self.wsep = 0.1#
         self.wgoal = 1.0
         self.boidDistance = 3.8 #How far apart the drones can be to be affected by boidForces
         self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
@@ -432,10 +432,13 @@ class Controller(Node):
         for i in range(0,3):
             if startPoint[i] > (self.bounding_box_size[i] - self.edge_distance) and force[i] > 0:
                 print("Not allowing drone " + cf._drone + " to move closer to the edge, as it is closer than our margins")
-                force[i] = 0
+                force[i] = -force[i]
             elif startPoint[i] < (-self.bounding_box_size[i] + self.edge_distance) and force[i] < 0 and i != 2:
-                force[i] = 0
+                force[i] = -force[i]
                 print("Not allowing drone " + cf._drone + " to move closer to the edge, as it is closer than our margins")
+        if startPoint[2] < self.edge_distance and self.current_op_index != len(self.operations) and force[2] < 0:
+            force[2] = -force[2] if abs(force[2]) > 0.2 else 0.2
+            print("Not allowing drone " + cf._drone + " to move closer to the floor, as it is closer than our margins")
                 
                 
         goal = np.array(startPoint) + force

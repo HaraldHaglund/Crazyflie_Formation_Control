@@ -135,10 +135,3 @@
         - 0.0
         marker: default
         dynamics: default
-      cf3:
-        initial_position:
-        - -0.5
-        - 0.5
-        - 0.0
-        marker: default
-        dynamics: default

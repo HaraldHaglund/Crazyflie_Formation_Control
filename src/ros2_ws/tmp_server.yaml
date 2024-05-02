@@ -74,7 +74,7 @@
         - 0.0
         type: cf21
       cf3:
-        enabled: true
+        enabled: false
         uri: radio://0/90/2M/3
         initial_position:
         - -0.5
@@ -85,16 +85,16 @@
         enabled: false
         uri: radio://0/90/2M/4
         initial_position:
-        - 0.0
-        - -0.5
+        - 0.5
+        - 0.5
         - 0.0
         type: cf21
       cf5:
         enabled: false
         uri: radio://0/90/2M/5
         initial_position:
-        - -1.0
-        - -1.0
+        - -0.5
+        - -0.5
         - 0.0
         type: cf21
       cf6:
