@@ -121,17 +121,17 @@
         max_pitch: 1.4
         max_fitness_score: 0.001
     rigid_bodies:
-      cf1:
+      cf3:
         initial_position:
-        - 0.0
+        - -0.5
         - 0.5
         - 0.0
         marker: default
         dynamics: default
-      cf2:
+      cf5:
         initial_position:
         - -0.5
-        - 0.0
+        - -0.5
         - 0.0
         marker: default
         dynamics: default

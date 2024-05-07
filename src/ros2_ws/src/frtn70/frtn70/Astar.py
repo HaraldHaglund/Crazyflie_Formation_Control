@@ -1,5 +1,6 @@
 import heapq  # Importing the heapq module for priority queue implementation
-import math   # Importing the math module for square root calculation
+import math
+import time   # Importing the math module for square root calculation
 import numpy as np
 
 class Node:
@@ -14,7 +15,7 @@ class Node:
         return self.cost + self.heuristic  # Calculate total cost of the node
     
 class Astar:
-    def astar(self, initial_state, goal_state, obstacles):
+    def astar(self, initial_state, goal_state, obstacles: set):
         open_list = []  # Priority queue for open nodes
         closed_set = set()  # Set of visited nodes
 
@@ -23,6 +24,7 @@ class Astar:
         heapq.heappush(open_list, (start_node.total_cost(), id(start_node), start_node))  # Push start node to open list
 
         while open_list:
+            start = time.time()
             _, _, current_node = heapq.heappop(open_list)  # Pop node with lowest total cost from open list
             if current_node.state == goal_state:
                 path = []  # Reconstruct and store the path
@@ -42,6 +44,7 @@ class Astar:
                 new_node.heuristic = self.manhattan_distance(successor_state, goal_state)  # Calculate heuristic for new node
 
                 heapq.heappush(open_list, (new_node.total_cost(), id(new_node), new_node))  # Push new node to open list
+            #print(time.time() - start)
         return None  # No path found
 
     def manhattan_distance(self, state, goal_state):

@@ -41,10 +41,10 @@ class Operation:
 
 
 class Obstacle:
-    def __init__(self, id, size=[0.5, 0.5, 0.5], location=[0.0, 0.0, 0.0]):
+    def __init__(self, id, radius = 0.0, location=[0.0, 0.0, 0.0]):
         self.id = id
-        self.size = size
-        self.location = location
+        self.radius = radius
+        self.location = np.array(location)
 
 
 # Contains code for controlling the group as a whole, and specific manuvers
@@ -75,11 +75,15 @@ class Controller(Node):
         # How close to the edge of the area can the drone be
         self.edge_distance = 0.2
 
+        # How close should object forces start to apply
+        self.obstacle_max_dist = 0.3
+
         # Tuning parameters for force model
         self.wcoh = 0.8
         self.walign = 0.2
         self.wsep = 0.1#
         self.wgoal = 1.0
+        self.wobstacle = 1.5
         self.boidDistance = 3.8 #How far apart the drones can be to be affected by boidForces
         self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
 
@@ -110,8 +114,9 @@ class Controller(Node):
         self.graphics.displayBoundingBox()
 
         self.obstacles = [
-            Obstacle(0, size=[0.05, 0.05, 0.05], location=[2.0, 1.0, 1.5]),
-            Obstacle(1, size=[0.05, 0.05, 0.05], location=[-1.5, -1.0, 1.0]),
+            Obstacle(0, radius=0.05, location=[2.0, 1.0, 1.5]),
+            Obstacle(1, radius=0.05, location=[-1.5, -1.0, 1.0]),
+            Obstacle(2, radius=0.25, location=[-0.25, 0.5, 1.0]),
         ]
 
         self.graphics.displayObstacles()
@@ -205,12 +210,33 @@ class Controller(Node):
             for n2 in self._crazyflies.keys():
                 if n == n2 or (n, n2) in distances.keys() or (n2, n) in distances.keys():
                     continue
-                distances[(n, n2)] = np.linalg.norm(pos[n2] - pos[n])
-                distances[(n2, n)] = np.linalg.norm(pos[n] - pos[n2])
+                distances[(n, n2)] = abs(np.linalg.norm(pos[n2] - pos[n]))
+                distances[(n2, n)] = abs(np.linalg.norm(pos[n] - pos[n2]))
         return distances
+    
+    
+    def getObstaclesNearby(self):
+        near = {}
+        for n in self._crazyflies.keys():
+            near[n] = []
+            for o in self.obstacles:
+                p = self.positions[n]
+                if np.linalg.norm(p - o.location) < self.obstacle_max_dist + o.radius:
+                    print("Obstacle distance for ", n , "and", o.id, np.linalg.norm(p - o.location), "Max ", self.obstacle_max_dist + o.radius)
+                    near[n].append(o)
+        return near
 
 
-    def getAvgPosition(self, positions):
+    def applyObstacleForce(self, cfpos: np.array, force: np.array, obstacle: Obstacle):
+        direction = obstacle.location - cfpos
+        n_dir = direction / np.linalg.norm(direction)
+
+        proj = np.dot(force, n_dir) * n_dir
+        return force - proj * self.wobstacle
+
+
+
+    def getAvgPosition(self, positions: dict):
         # Create an average of all the points in the list positions, or send origo
         if len(positions) > 0:
             return np.array(list(positions.values())).mean(axis=0)
@@ -223,9 +249,34 @@ class Controller(Node):
     
 
     def generateOperations(self):
+        astarObstacles = set()
+        for o in self.obstacles:
+            xmin = int((o.location[0] - o.radius - self.obstacle_max_dist) * 100)
+            xmax = int((o.location[0] + o.radius + self.obstacle_max_dist + 0.01) * 100)
+            ymin = int((o.location[1] - o.radius - self.obstacle_max_dist) * 100)
+            ymax = int((o.location[1] + o.radius + self.obstacle_max_dist + 0.01) * 100)
+            zmin = int((o.location[2] - o.radius - self.obstacle_max_dist) * 100)
+            zmax = int((o.location[2] + o.radius + self.obstacle_max_dist + 0.01) * 100)
+
+            for x in range(xmin, xmax):
+                for y in range(ymin, ymax):
+                    astarObstacles.add((x, y, zmin))
+                    astarObstacles.add((x, y, zmax))
+                for z in range(zmin, zmax):
+                    astarObstacles.add((x, ymin, z))
+                    astarObstacles.add((x, ymax, z))
+            for y in range(ymin, ymax):
+                for z in range(zmin, zmax):
+                    astarObstacles.add((xmin, y, z))
+                    astarObstacles.add((xmax, y, z))
+
+
+        #print(sorted(astarObstacles, key=lambda x: x[0]))
+        print("Num obstacle positions:", len(astarObstacles))
         #goal = [-1.5, 1.0, 1.0]
-        goal = self.avgPos + np.array([0.5, 0.5, 0.5])
-        goal2 = goal + np.array([-1.5, -1.5, -1.0])
+        #goal = self.avgPos + np.array([0.5, 0.5, 0.5])
+        goal = np.array([1.0, 1.0, 1.5])
+        goal2 = goal + np.array([-2.0, -1.5, -1.0])
         for i in range(0,3):
             while goal[i] > (self.bounding_box_size[i] - 0.25):
                 goal[i] -= 0.1
@@ -239,20 +290,33 @@ class Controller(Node):
                 goal2[i] += 0.1
         astar = Astar()
         startPos = self.getAvgPosition(self.positions)
-        path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), [])
+        path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), astarObstacles)
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
         
-        path = astar.astar(tuple([int(c * 100) for c in goal]), tuple([int(c * 100) for c in goal2]), [])
+        path = astar.astar(tuple([int(c * 100) for c in goal]), tuple([int(c * 100) for c in goal2]), astarObstacles)
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
         self.operations.append(Operation("Land",           type="Land"))
+        #print(len(self.operations))
+        #for g in self.operations[3:-3]:
+        #    for o in self.obstacles:
+        #        if max(np.linalg.norm(np.array(g.goal) - o.location) - o.radius, 0) < (self.obstacle_max_dist + self.goal_tolerance):
+        #            self.operations.remove(g)
+        #print(len(self.operations))
 
-        min_lenght = len(self.operations) / 2
-        while len(self.operations) > min_lenght:
-            toRemove = random.sample(self.operations[3:-3], 1)[0]
-            self.operations.remove(toRemove)
+        #min_lenght = len(self.operations) / 2
+        #while len(self.operations) > min_lenght:
+        #    toRemove = random.sample(self.operations[3:-3], 1)[0]
+        #    self.operations.remove(toRemove)
         
+        to_remove = []
+        print(len(self.operations))
+        for i in range(3, len(self.operations) - 3 + 1, 2):
+            to_remove.append(self.operations[i])
+        for e in to_remove:
+            self.operations.remove(e)
+        print(len(self.operations))
         self.graphics.displayWaypoints()
 
     
@@ -272,6 +336,7 @@ class Controller(Node):
     def performPathOp(self):
         self.positions = self.getPositions()
         self.distances = self.getDistances()
+        self.obstaclesNearby = self.getObstaclesNearby()
         self.avgPos = self.getAvgPosition(self.positions)
         self.publishDistances()
         if not self.allReady():
@@ -284,9 +349,7 @@ class Controller(Node):
         if op.type == "Takeoff":
             if not op.inProgress:
                 print("Executing op " + op.name)
-                #self.moveAll(op.force)
-                #for cf in self._crazyflies.values():
-                #    cf._goal = list(np.array(cf.position) + np.array([0.0, 0.0, 1.0]))
+
                 c = self.create_client(Takeoff, "/all/takeoff")
                 
                 c.call_async(self.takeoffRequest)
@@ -297,6 +360,8 @@ class Controller(Node):
                 print("All have taken off")
                 self.current_op_index += 1
                 op.completed = True
+
+                # Generate the path for the swarm to take. This is A*
                 if not self.operationsGenerated:
                     self.generateOperations()
                     self.graphics.displayWaypoints()
@@ -309,15 +374,21 @@ class Controller(Node):
                 self.graphics.displayOp(op)
             else:
                 
-                bfs = {}
-                for (name, cf) in self._crazyflies.items():
-                    bfs[name] = np.array(boidForces[name])
+                #bfs = {}
+                #for (name, cf) in self._crazyflies.items():
+                #    bfs[name] = np.array(boidForces[name])
 
-                gf = np.array(self.getForceAvgToGoal(op.goal, bfs))
+                gf = np.array(self.getForceAvgToGoal(op.goal, boidForces))
                 for (name, cf) in self._crazyflies.items():
-                    tf = gf + bfs[name]
+                    if len(self.obstaclesNearby[name]) > 0:
+                        for o in self.obstaclesNearby[name]:
+                            print("Obstacle near ", name, " is ", o.id)
+                    tf = gf + boidForces[name]
+                    tf = self.limitForce(tf)
+                    for obstacle in self.obstaclesNearby[name]:
+                        tf = self.applyObstacleForce(self.positions[name], tf, obstacle)
                     #print("Drone " + name + " has tf " + str(tf))
-                    self.applyForce(cf, self.limitForce(tf))
+                    self.applyForce(cf, tf)
                     # Check if we are at our goal, whilst considering boidforces as well
                     #print("Drone " + name + " has pos " + str(self.positions[name]) + " and goal " + str(op.goal) + " dist is " + str(np.linalg.norm((op.goal + bf) - self.positions[name])))
                 if self.avgAtGoal(op.goal):
@@ -345,11 +416,11 @@ class Controller(Node):
             op.inProgress = True
                     
     
-    def getForceToGoal(self, cf, goal):
+    def getForceToGoal(self, cf: Crazyflie, goal: np.array):
         return (goal - self.positions[cf._drone]) * self.wgoal
     
 
-    def getForceAvgToGoal(self, goal, boidforces):
+    def getForceAvgToGoal(self, goal: np.array, boidforces: dict):
         newPos = {}
         for name in self._crazyflies.keys():
             newPos[name] = self.positions[name] + boidforces[name]
@@ -357,15 +428,15 @@ class Controller(Node):
         return (goal - newAvg) * self.wgoal
 
     
-    def droneAtGoal(self, cf, goal):
-        return np.linalg.norm(goal - self.positions[cf._drone]) < self.goal_tolerance
+    def droneAtGoal(self, cf: Crazyflie, goal: np.array):
+        return abs(np.linalg.norm(goal - self.positions[cf._drone])) < self.goal_tolerance
     
 
-    def avgAtGoal(self, goal):
-        return np.linalg.norm(goal - self.avgPos) < self.goal_tolerance
+    def avgAtGoal(self, goal: np.array):
+        return abs(np.linalg.norm(goal - self.avgPos)) < self.goal_tolerance
     
     
-    def limitForce(self, force):
+    def limitForce(self, force: np.array):
         norm = np.linalg.norm(force)
         if not norm:
             return [0.0, 0.0, 0.0]
@@ -420,12 +491,12 @@ class Controller(Node):
             #    print("Drone " + name + " has distance " + str(d) )
             #print("Drone " + name + " has pcoh " + str(pcoh*self.wcoh) + " valign " + str(valign*self.walign) + " fsep " + str(fsep*self.wsep))
     
-            bforce[name] = self.wsep * fsep + self.walign * valign + self.wcoh * pcoh
+            bforce[name] = np.array(self.wsep * fsep + self.walign * valign + self.wcoh * pcoh)
             #print("Drone " + name + " has boidforce " + str(bforce[name]))
         return bforce
     
 
-    def applyForce(self, cf, force, rotation=0):
+    def applyForce(self, cf: Crazyflie, force: np.array, rotation:int = 0):
         startPoint = cf.position
 
         # Do not move too close to the edge
@@ -461,7 +532,7 @@ class Controller(Node):
         cf.stateMsg = msg
 
 
-    def moveAll(self, force, rotation=0):
+    def moveAll(self, force: np.array, rotation:int =0):
         for (name, cf) in self._crazyflies.items():
             startPoint = self.getPositions()[name]
             goal = np.array(startPoint) + np.array(force)
@@ -503,7 +574,7 @@ class Controller(Node):
                     self.emergencyLand(name, "IS OUTSIDE OF THE BOUNDING BOX " + str(pos))
 
 
-    def emergencyLand(self, drone_name, message):
+    def emergencyLand(self, drone_name: str, message: str):
         self.operation_timer.destroy()
         print("EMERGENCY, DRONE " + drone_name + " " + message + "! LANDING!!")
         self.moveAll([0.0, 0.0, - self._crazyflies[drone_name].position[2] + self.landing_height])
