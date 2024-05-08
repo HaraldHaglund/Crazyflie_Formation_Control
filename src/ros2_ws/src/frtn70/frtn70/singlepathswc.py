@@ -240,9 +240,17 @@ class Controller(Node):
         astar = Astar()
         startPos = self.getAvgPosition(self.positions)
         path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), [])
+        #Debug
+        if path:
+            print("Path found:")
+            for step, position in enumerate(path):
+                print(f"Step {step + 1}: Move to {position}")
+        else:
+            print("No path found.")
+
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
-        
+        print('length of operations is: ', len(self.operations))
         path = astar.astar(tuple([int(c * 100) for c in goal]), tuple([int(c * 100) for c in goal2]), [])
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
