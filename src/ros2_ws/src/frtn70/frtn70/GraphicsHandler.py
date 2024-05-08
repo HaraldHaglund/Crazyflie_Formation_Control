@@ -134,7 +134,7 @@ class GraphicsHandler:
             m.header.frame_id = "world"
             m.header.stamp = self.controller.get_clock().now().to_msg()
             m.ns = "obstacle"
-            m.type = Marker.CUBE 
+            m.type = Marker.SPHERE 
             m.action = Marker.ADD
             m.id = ob.id 
             m.pose.position.x = ob.location[0]
@@ -149,9 +149,9 @@ class GraphicsHandler:
             m.color.b = 0.0
             m.color.a = 1.0
             #m.lifetime = rclpy.duration.Duration()
-            m.scale.x = ob.size[0]
-            m.scale.y = ob.size[1]
-            m.scale.z = ob.size[2]
+            m.scale.x = ob.radius * 2
+            m.scale.y = ob.radius * 2
+            m.scale.z = ob.radius * 2
 
             markers.markers.append(m)
 
