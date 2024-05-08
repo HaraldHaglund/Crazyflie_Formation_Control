@@ -1,6 +1,8 @@
 import heapq
 import math
-import cProfile
+
+import numpy as np
+#import cProfile
 
 class Node:
     def __init__(self, state, parent=None, action=None, g=0, h=0):
@@ -14,9 +16,10 @@ class Node:
         return self.g + self.h 
 
 class Astar:
-    def astar(self, initial_state, goal_state, obstacles):
+    def astar(self, initial_state, goal_state, obstacles: set):
         print('Initial state is ', initial_state)
         print('Goal state is ', goal_state)
+        print("OBSTACLE SIZE", len(obstacles))
         # OPEN //the set of nodes to be evaluated
         open_list = []  # containing f, id, node
         heapq.heapify(open_list)  # Convert list to heap
@@ -48,11 +51,11 @@ class Astar:
 
             # foreach neighbour of the current node. where neighbours contains [action, state, g]
             i = 0
-            print('CURRENT NODE: ' , current_node.state)
+            #print('CURRENT NODE: ' , current_node.state)
             for neighbour_node in self.neighbours(current_node.state, obstacles):
                 i +=1
-                print('Neighbour node number ', i, ' state: ', neighbour_node.state)
-                print('Neighbour node number ', i , 'in closed set? ', neighbour_node.state in closed_set)
+                #print('Neighbour node number ', i, ' state: ', neighbour_node.state)
+                #print('Neighbour node number ', i , 'in closed set? ', neighbour_node.state in closed_set)
                 if (neighbour_node.state in closed_set) or (neighbour_node.state in obstacles):
                     # skip to the next neighbour
                     continue
@@ -73,10 +76,12 @@ class Astar:
         return None
 
     def heuristic(self, state, goal_state, weight=1): # 0 -> euclidian, 1 -> manhattan
-        manhattan_dist = abs(state[0] - goal_state[0]) + abs(state[1] - goal_state[1]) + abs(state[2] - goal_state[2])
-        euclidean_dist = math.sqrt((state[0] - goal_state[0])**2 + (state[1] - goal_state[1])**2 + (state[2] - goal_state[2])**2)
-        combined_dist = weight * manhattan_dist + (1 - weight) * euclidean_dist
-        return combined_dist
+        if weight:
+            #Manhattan
+            return abs(state[0] - goal_state[0]) + abs(state[1] - goal_state[1]) + abs(state[2] - goal_state[2])
+        else:
+        #euclidean_dist = math.sqrt((state[0] - goal_state[0])**2 + (state[1] - goal_state[1])**2 + (state[2] - goal_state[2])**2)
+            return np.linalg.norm(np.array(state) - np.array(goal_state))
 
     #Retrives the neighbours of a current state
     def neighbours(self, state, obstacles):
@@ -84,7 +89,7 @@ class Astar:
         neighbors = []  # Initialize an empty list to store the generated neighbors
 
         # Define possible changes in coordinates
-        moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]#,
+        moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
                 #(-1, -1, 0), (-1, 1, 0), (1, -1, 0), (1, 1, 0), (-1, 0, -1), (-1, 0, 1),
                 #(1, 0, -1), (1, 0, 1), (0, -1, -1), (0, -1, 1), (0, 1, -1), (0, 1, 1)]
 
@@ -100,16 +105,16 @@ class Astar:
         return neighbors
 
 
-def profile_function():
-    astar_solver = Astar()
-    #initial_state = (16, 83, 140)
-    initial_state =  (0, 0, 0)
-    #goal_state = (-133, -66, 40)
-    goal_state = (149, 149, 149)
-    obstacles = {}  # Example obstacle positions
-    path = astar_solver.astar(initial_state, goal_state, obstacles)
-    print("Path:", path)
+#def profile_function():
+#    astar_solver = Astar()
+#    #initial_state = (16, 83, 140)
+#    initial_state =  (0, 0, 0)
+#    #goal_state = (-133, -66, 40)
+#    goal_state = (149, 149, 149)
+#    obstacles = {}  # Example obstacle positions
+#    path = astar_solver.astar(initial_state, goal_state, obstacles)
+#    print("Path:", path)
 
 #Profile the function call
-cProfile.run('profile_function()')
+#cProfile.run('profile_function()')
 

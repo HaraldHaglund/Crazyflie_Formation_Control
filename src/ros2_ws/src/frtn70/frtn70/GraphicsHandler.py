@@ -156,6 +156,7 @@ class GraphicsHandler:
             markers.markers.append(m)
 
         self.obstaclePublisher.publish(markers)
+
     
 
     def displayAvgPoint(self):        

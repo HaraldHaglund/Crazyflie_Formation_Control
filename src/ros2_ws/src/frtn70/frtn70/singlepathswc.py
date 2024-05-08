@@ -83,7 +83,7 @@ class Controller(Node):
         self.walign = 0.2
         self.wsep = 0.1#
         self.wgoal = 1.0
-        self.wobstacle = 1.5
+        self.wobstacle = 2.0
         self.boidDistance = 3.8 #How far apart the drones can be to be affected by boidForces
         self.maxForce = 0.1 #* operation_interval # How fast do we allow the drones to move per cycle?
 
@@ -116,7 +116,8 @@ class Controller(Node):
         self.obstacles = [
             Obstacle(0, radius=0.05, location=[2.0, 1.0, 1.5]),
             Obstacle(1, radius=0.05, location=[-1.5, -1.0, 1.0]),
-            Obstacle(2, radius=0.25, location=[-0.25, 0.5, 1.0]),
+            Obstacle(2, radius=0.25, location=[0.2, 0.5, 1.5]),
+            Obstacle(3, radius=0.25, location=[0.5, -0.0, 0.5]),
         ]
 
         self.graphics.displayObstacles()
@@ -230,8 +231,8 @@ class Controller(Node):
     def applyObstacleForce(self, cfpos: np.array, force: np.array, obstacle: Obstacle):
         direction = obstacle.location - cfpos
         n_dir = direction / np.linalg.norm(direction)
-
-        proj = np.dot(force, n_dir) * n_dir
+        print("Applying obstacle force")
+        proj = np.dot(force, n_dir)  * force
         return force - proj * self.wobstacle
 
 
@@ -290,7 +291,7 @@ class Controller(Node):
                 goal2[i] += 0.1
         astar = Astar()
         startPos = self.getAvgPosition(self.positions)
-        path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), [])
+        path = astar.astar(tuple([int(c * 100) for c in startPos]), tuple([int(c * 100) for c in goal]), astarObstacles)
         #Debug
         if path:
             print("Path found:")
@@ -298,11 +299,18 @@ class Controller(Node):
                 print(f"Step {step + 1}: Move to {position}")
         else:
             print("No path found.")
-
+        
+        if not path:
+            self.emergencyLand(list(self._crazyflies.keys())[0], "Could not generate path")
+            exit(1)
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
         print('length of operations is: ', len(self.operations))
-        path = astar.astar(tuple([int(c * 100) for c in goal]), tuple([int(c * 100) for c in goal2]), [])
+        path = astar.astar(tuple([int(c * 100) for c in goal]), tuple([int(c * 100) for c in goal2]), astarObstacles)
+
+        if not path:
+            self.emergencyLand(list(self._crazyflies.keys())[0], "Could not generate path")
+            exit(1)
         for move in path:
             self.operations.append(Operation("Move", type="Goal", goal=[float(c / 100) for c in move]))
         self.operations.append(Operation("Land",           type="Land"))
@@ -320,6 +328,12 @@ class Controller(Node):
         
         to_remove = []
         print(len(self.operations))
+        for i in range(3, len(self.operations) - 3 + 1, 2):
+            to_remove.append(self.operations[i])
+        for e in to_remove:
+            self.operations.remove(e)
+        print(len(self.operations))
+        to_remove = []
         for i in range(3, len(self.operations) - 3 + 1, 2):
             to_remove.append(self.operations[i])
         for e in to_remove:
